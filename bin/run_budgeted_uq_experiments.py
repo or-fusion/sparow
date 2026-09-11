@@ -444,6 +444,28 @@ def run_one_macrorep(
         }
     )
 
+    # Same-total-budget variance reduction factor.
+    # Both quantities in this ratio are estimator variances, so the HF-only
+    # per-replication sample variance is divided by its own replication count
+    # before being compared against the ACV estimator variance. 
+
+    # row["hf_budget_sample_variance"] is the sample variance of individual 
+    # high-fidelity replication outputs, denoted s_F^{2} (replication-level variance).
+
+    # Then s_F^{2} /m is the variance of the sample mean estimator of the HF-only baseline
+    hf_budget_estimator_variance = (
+        row["hf_budget_sample_variance"] / hf_same_budget_m
+        if hf_same_budget_m > 0
+        else float("nan")
+    )
+    row["hf_budget_variance_estimator"] = float(hf_budget_estimator_variance)
+
+    row["same_budget_variance_reduction_factor"] = (
+        float(hf_budget_estimator_variance / row["acv_variance_estimator"])
+        if row["acv_variance_estimator"] > 0.0
+        else float("nan")
+    )
+
     # Coverage indicators: recording whether the estimated confidence interval
     # contains the true population quantity of interest (obtained from benchmark)
     if true_gap is None or math.isnan(true_gap):
@@ -621,6 +643,18 @@ def summarize_macrorep_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         out["avg_acv_alpha_hat"] = mean_or_nan([r["acv_alpha_hat"] for r in subrows])
         out["avg_acv_variance_reduction_factor"] = mean_or_nan(
             [r["acv_variance_reduction_factor"] for r in subrows]
+        )
+
+        # Same-total-budget variance reduction factor, averaged over the R
+        # macro-replications. Non-finite entries are droppeds
+        out["avg_same_budget_variance_reduction_factor"] = mean_or_nan(
+            [
+                r["same_budget_variance_reduction_factor"]
+                for r in subrows
+                if np.isfinite(
+                    safe_float(r.get("same_budget_variance_reduction_factor"))
+                )
+            ]
         )
 
         # Empirical variances of point estimators across macro-replications

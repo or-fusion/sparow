@@ -65,6 +65,72 @@ plt.rcParams.update(
 output_dir = csv_path.parent / "plots"
 output_dir.mkdir(parents=True, exist_ok=True)
 
+# ----------------------------------------------------------------------
+# Same-total-budget variance reduction annotations
+# ----------------------------------------------------------------------
+
+# Summary column holding the same-total-budget variance reduction factor,
+# averaged over the R macro-replications. 
+VARIANCE_REDUCTION_COL = "avg_same_budget_variance_reduction_factor"
+
+# Every annotation carries a one-word suffix naming the quantity it reports, and
+# the matching legend entry quotes that same suffix. 
+VARIANCE_REDUCTION_SUFFIX = "variance"
+
+VARIANCE_REDUCTION_LEGEND_LABEL = (
+    f'Labels "…× {VARIANCE_REDUCTION_SUFFIX}": average same-total-budget '
+    "estimator variance reduction (HF-only variance / multifidelity variance); "
+    "> 1 means the multifidelity variance is smaller"
+)
+
+
+def variance_reduction_label(value):
+    """
+    Format one average variance reduction factor for use as a plot annotation.
+
+    Returns None when the value is missing or non-finite, so that callers can
+    skip annotating that configuration rather than printing a placeholder.
+    """
+    factor = float(value) if value is not None else float("nan")
+    if not np.isfinite(factor):
+        return None
+    return f"{factor:.2f}× {VARIANCE_REDUCTION_SUFFIX}"
+
+
+# ----------------------------------------------------------------------
+# Margin-of-error ratio annotations for the interval plots
+# ----------------------------------------------------------------------
+
+ACV_HALF_WIDTH_COL = "avg_acv_half_width"
+HF_BUDGET_HALF_WIDTH_COL = "avg_hf_budget_half_width"
+
+MARGIN_RATIO_SUFFIX = "margin"
+
+HALF_WIDTH_RATIO_LEGEND_LABEL = (
+    f'Labels "…× {MARGIN_RATIO_SUFFIX}": ratio of average one-sided margins of '
+    "error (HF-only margin / multifidelity margin); "
+    "> 1 means the multifidelity margin is narrower"
+)
+
+
+def half_width_ratio_label(hf_half_width, acv_half_width):
+    """
+    Format the ratio of two average margins of error for use as an annotation.
+
+    Returns None when either average is missing or non-finite, or when the
+    multifidelity margin is non-positive, so that callers can skip annotating
+    that configuration rather than printing a placeholder.
+    """
+    try:
+        hf = float(hf_half_width)
+        acv = float(acv_half_width)
+    except (TypeError, ValueError):
+        return None
+    if not (np.isfinite(hf) and np.isfinite(acv)) or acv <= 0.0:
+        return None
+    return f"{hf / acv:.2f}× {MARGIN_RATIO_SUFFIX}"
+
+
 # =============================================================================
 # Core line plots versus budget
 # =============================================================================
@@ -598,6 +664,86 @@ for budget, sub in df.groupby("budget"):
         linestyle="--",
         label=rf"True optimality gap $\Delta_f(\hat{{x}})$",
     )
+
+    # Annotate each batch size with two same-total-budget ratios: the ratio of
+    # the average margins of error and the average estimator
+    # variance reduction factor. 
+    have_half_widths = {ACV_HALF_WIDTH_COL, HF_BUDGET_HALF_WIDTH_COL}.issubset(
+        sub.columns
+    )
+    have_variance_factor = VARIANCE_REDUCTION_COL in sub.columns
+
+    if have_half_widths or have_variance_factor:
+        annotated_margin_ratio = False
+        annotated_variance_factor = False
+        last_index = len(sub) - 1
+
+        for index, (_, row) in enumerate(sub.iterrows()):
+            margin_label = (
+                half_width_ratio_label(
+                    row[HF_BUDGET_HALF_WIDTH_COL], row[ACV_HALF_WIDTH_COL]
+                )
+                if have_half_widths
+                else None
+            )
+            variance_label = (
+                variance_reduction_label(row[VARIANCE_REDUCTION_COL])
+                if have_variance_factor
+                else None
+            )
+
+            label_lines = []
+            if margin_label is not None:
+                label_lines.append(margin_label)
+                annotated_margin_ratio = True
+            if variance_label is not None:
+                label_lines.append(variance_label)
+                annotated_variance_factor = True
+
+            if not label_lines:
+                continue
+
+            # Anchor the label below whichever of the two same-budget curves is
+            # the lower one at this n, so that a two-line label cannot land on
+            # either curve's marker, and align the first and last labels inward
+            # so they stay inside the axes.
+            anchor_y = min(row["avg_acv_ci_upper"], row["avg_hf_budget_ci_upper"])
+
+            if last_index == 0:
+                horizontal_alignment = "center"
+            elif index == 0:
+                horizontal_alignment = "left"
+            elif index == last_index:
+                horizontal_alignment = "right"
+            else:
+                horizontal_alignment = "center"
+
+            ax.annotate(
+                "\n".join(label_lines),
+                xy=(row["n"], anchor_y),
+                xytext=(0, -16),
+                textcoords="offset points",
+                ha=horizontal_alignment,
+                va="top",
+                fontsize=10,
+                color=COLOR_ACV,
+                annotation_clip=False,
+                # Opaque backing so a label stays readable where it lands on
+                # a neighbouring curve.
+                bbox=dict(
+                    boxstyle="round,pad=0.2",
+                    facecolor="white",
+                    edgecolor="none",
+                    alpha=0.8,
+                ),
+            )
+
+        # Invisible handles so the bottom legend explains each label line.
+        if annotated_margin_ratio:
+            ax.plot([], [], " ", label=HALF_WIDTH_RATIO_LEGEND_LABEL)
+        if annotated_variance_factor:
+            ax.plot([], [], " ", label=VARIANCE_REDUCTION_LEGEND_LABEL)
+
     apply_grid(ax)
     finalize_standard_plot(
         fig,
@@ -755,6 +901,41 @@ for n, sub in df.groupby("n"):
             label=rf"True optimality gap $\Delta_f(\hat{{x}})$",
         ),
     ]
+
+    # Annotate each budget row with the ratio of the two average margins of
+    # error drawn on that row, placed just past the end of the multifidelity
+    # interval.
+    if {ACV_HALF_WIDTH_COL, HF_BUDGET_HALF_WIDTH_COL}.issubset(sub.columns):
+        annotated_any = False
+        for y, (_, row) in zip(y_positions, sub.iterrows()):
+            label = half_width_ratio_label(
+                row[HF_BUDGET_HALF_WIDTH_COL], row[ACV_HALF_WIDTH_COL]
+            )
+            if label is None:
+                continue
+            ax.annotate(
+                label,
+                xy=(row["avg_acv_ci_upper"], y - offset),
+                xytext=(8, 0),
+                textcoords="offset points",
+                ha="left",
+                va="center",
+                fontsize=10,
+                color=COLOR_ACV,
+                annotation_clip=False,
+            )
+            annotated_any = True
+
+        if annotated_any:
+            legend_handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color=COLOR_ACV,
+                    lw=0,
+                    label=HALF_WIDTH_RATIO_LEGEND_LABEL,
+                )
+            )
 
     finalize_interval_plot(
         fig,
@@ -974,6 +1155,40 @@ for budget, sub in df.groupby("budget"):
             label=rf"True optimality gap $\Delta_f(\hat{{x}})$",
         ),
     ]
+
+    # Annotate each batch size row with the ratio of the two average margins of
+    # error drawn on that row, matching the fixed-n orientation of this plot.
+    if {ACV_HALF_WIDTH_COL, HF_BUDGET_HALF_WIDTH_COL}.issubset(sub.columns):
+        annotated_any = False
+        for y, (_, row) in zip(y_positions, sub.iterrows()):
+            label = half_width_ratio_label(
+                row[HF_BUDGET_HALF_WIDTH_COL], row[ACV_HALF_WIDTH_COL]
+            )
+            if label is None:
+                continue
+            ax.annotate(
+                label,
+                xy=(row["avg_acv_ci_upper"], y - offset),
+                xytext=(8, 0),
+                textcoords="offset points",
+                ha="left",
+                va="center",
+                fontsize=10,
+                color=COLOR_ACV,
+                annotation_clip=False,
+            )
+            annotated_any = True
+
+        if annotated_any:
+            legend_handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color=COLOR_ACV,
+                    lw=0,
+                    label=HALF_WIDTH_RATIO_LEGEND_LABEL,
+                )
+            )
 
     finalize_interval_plot(
         fig,

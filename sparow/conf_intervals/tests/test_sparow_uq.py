@@ -530,6 +530,7 @@ def test_acvmrp_run_returns_expected_fields(facilityloc_ensemble):
         "control_variate_coefficient",
         "sample_correlation",
         "variance_acv_estimator",
+        "variance_hf_only_estimator",
         "standard_error_acv",
         "variance_reduction_factor",
         "F_values",
@@ -544,3 +545,57 @@ def test_acvmrp_run_returns_expected_fields(facilityloc_ensemble):
     assert len(results["F_values"]) == options.m
     assert len(results["G_paired_values"]) == options.m
     assert len(results["G_all_values"]) == options.m + options.M
+
+
+def run_small_acvmrp(ensemble, m, M):
+    """
+    Helper that runs one small ACVMRP configuration on the facility-location ensemble.
+    """
+    options = UQOptions(
+        n=4,
+        m=m,
+        M=M,
+        alpha=0.05,
+        seed=678,
+        with_replacement=True,
+        solver_name="highs",
+        verbose=False,
+    )
+
+    acv = ACVMRP(
+        hf_model=ensemble.high_fidelity_model(),
+        lf_model=ensemble.low_fidelity_model(),
+        options=options,
+    )
+
+    return acv.run(xhat=XHAT_DISCRETE_FACILITYLOC)
+
+
+def test_acvmrp_variance_reduction_compares_estimator_variances(facilityloc_ensemble):
+    """
+    The variance reduction factor must compare the ACV estimator variance
+    against the HF-only estimator variance at the same paired replication
+    count m.
+    """
+    m = 3
+    M = 2
+
+    # With M = 0 there are no additional low-fidelity replications, so the
+    # ACV estimator should reduce exactly to HF-only MRP.
+    results_no_lf = run_small_acvmrp(facilityloc_ensemble, m=m, M=0)
+    assert results_no_lf["sample_variance_F"] > 0.0
+
+    assert results_no_lf["variance_hf_only_estimator"] == pytest.approx(results_no_lf["sample_variance_F"] / m)
+    assert results_no_lf["variance_acv_estimator"] == pytest.approx(results_no_lf["variance_hf_only_estimator"])
+    assert results_no_lf["point_estimate"] == pytest.approx(results_no_lf["point_estimate_hf_only"])
+    assert results_no_lf["variance_reduction_factor"] == pytest.approx(1.0)
+
+    # With M > 0, substituting the estimated control variate coefficient into
+    # the plug-in variance expression gives
+    #     var_acv = (s_F^2 / m) * (1 - rho^2 * M / (m + M)),
+    # so the variance reduction factor has the closed form below.
+    results = run_small_acvmrp(facilityloc_ensemble, m=m, M=M)
+    rho_hat = results["sample_correlation"]
+    expected_factor = 1.0 / (1.0 - (rho_hat**2) * M / (m + M))
+
+    assert results["variance_reduction_factor"] == pytest.approx(expected_factor)
