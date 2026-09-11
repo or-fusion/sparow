@@ -231,7 +231,7 @@ class ACVMRP:
         return {
             "point_estimate": F_acv,
             "point_estimate_hf_only": F_bar,  # For comparison
-            "variance_hf_only_estimator": float(var_hf_only), # For comparison
+            "variance_hf_only_estimator": float(var_hf_only),  # For comparison
             "ci_lower": ci_lower,
             "ci_upper": ci_upper,
             "half_width": half_width,
