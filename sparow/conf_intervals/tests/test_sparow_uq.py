@@ -585,9 +585,15 @@ def test_acvmrp_variance_reduction_compares_estimator_variances(facilityloc_ense
     results_no_lf = run_small_acvmrp(facilityloc_ensemble, m=m, M=0)
     assert results_no_lf["sample_variance_F"] > 0.0
 
-    assert results_no_lf["variance_hf_only_estimator"] == pytest.approx(results_no_lf["sample_variance_F"] / m)
-    assert results_no_lf["variance_acv_estimator"] == pytest.approx(results_no_lf["variance_hf_only_estimator"])
-    assert results_no_lf["point_estimate"] == pytest.approx(results_no_lf["point_estimate_hf_only"])
+    assert results_no_lf["variance_hf_only_estimator"] == pytest.approx(
+        results_no_lf["sample_variance_F"] / m
+    )
+    assert results_no_lf["variance_acv_estimator"] == pytest.approx(
+        results_no_lf["variance_hf_only_estimator"]
+    )
+    assert results_no_lf["point_estimate"] == pytest.approx(
+        results_no_lf["point_estimate_hf_only"]
+    )
     assert results_no_lf["variance_reduction_factor"] == pytest.approx(1.0)
 
     # With M > 0, substituting the estimated control variate coefficient into

@@ -447,9 +447,9 @@ def run_one_macrorep(
     # Same-total-budget variance reduction factor.
     # Both quantities in this ratio are estimator variances, so the HF-only
     # per-replication sample variance is divided by its own replication count
-    # before being compared against the ACV estimator variance. 
+    # before being compared against the ACV estimator variance.
 
-    # row["hf_budget_sample_variance"] is the sample variance of individual 
+    # row["hf_budget_sample_variance"] is the sample variance of individual
     # high-fidelity replication outputs, denoted s_F^{2} (replication-level variance).
 
     # Then s_F^{2} /m is the variance of the sample mean estimator of the HF-only baseline

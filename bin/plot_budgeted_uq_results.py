@@ -70,11 +70,11 @@ output_dir.mkdir(parents=True, exist_ok=True)
 # ----------------------------------------------------------------------
 
 # Summary column holding the same-total-budget variance reduction factor,
-# averaged over the R macro-replications. 
+# averaged over the R macro-replications.
 VARIANCE_REDUCTION_COL = "avg_same_budget_variance_reduction_factor"
 
 # Every annotation carries a one-word suffix naming the quantity it reports, and
-# the matching legend entry quotes that same suffix. 
+# the matching legend entry quotes that same suffix.
 VARIANCE_REDUCTION_SUFFIX = "variance"
 
 VARIANCE_REDUCTION_LEGEND_LABEL = (
@@ -667,7 +667,7 @@ for budget, sub in df.groupby("budget"):
 
     # Annotate each batch size with two same-total-budget ratios: the ratio of
     # the average margins of error and the average estimator
-    # variance reduction factor. 
+    # variance reduction factor.
     have_half_widths = {ACV_HALF_WIDTH_COL, HF_BUDGET_HALF_WIDTH_COL}.issubset(
         sub.columns
     )
