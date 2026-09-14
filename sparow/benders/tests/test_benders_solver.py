@@ -223,6 +223,74 @@ class TestBenders_NonPersistent:
 
         assert obj_val == pytest.approx(app.objective_value)
 
+    def _abs_problem(self, mip_solver, **opts):
+        app = simple_absolute_value()
+        solver = BendersSolver()
+        solver.set_options(solver=mip_solver, subproblem_solver=mip_solver, **opts)
+        eta_bounds_map = {s: (-1_000, None) for s in app.sp.bundles}
+        return app, solver, eta_bounds_map
+
+    def test_abs_bound_checking_off_no_cuts(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver)
+        assert solver.bound_checking is False
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert "No Cuts Added" in out.solutions.metadata.termination_condition
+        assert out.best_ub is None
+        soln = next(iter(out.solutions.to_dict()["solutions"].values()))
+        assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
+
+    def test_abs_loose_abs_tol_stops_on_gap(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver, abs_tol=1e6, max_iterations=50)
+        assert solver.bound_checking is True
+        out = solver.solve_and_return_model(app.sp, eta)
+        term = out.solutions.metadata.termination_condition
+        assert "abs_tol" in term
+        assert out.solutions.metadata.iterations < 50
+        assert out.best_ub is not None
+        assert out.best_ub - out.best_lb <= 1e6 + solver.bound_smoothing_tol
+
+    def test_abs_loose_rel_tol_stops_on_gap(self, mip_solver):
+        app, solver, eta = self._abs_problem(
+            mip_solver, rel_tol=10.0, max_iterations=50
+        )
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert "rel_tol" in out.solutions.metadata.termination_condition
+        assert out.solutions.metadata.iterations < 50
+        assert out.best_ub - out.best_lb <= (
+            10.0 * abs(out.best_lb) + solver.bound_smoothing_tol
+        )
+
+    def test_abs_either_or_abs_wins(self, mip_solver):
+        app, solver, eta = self._abs_problem(
+            mip_solver, abs_tol=1e6, rel_tol=1e-16, max_iterations=50
+        )
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert "abs_tol" in out.solutions.metadata.termination_condition
+
+    def test_abs_either_or_rel_wins(self, mip_solver):
+        app, solver, eta = self._abs_problem(
+            mip_solver, abs_tol=1e-16, rel_tol=10.0, max_iterations=50
+        )
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert "rel_tol" in out.solutions.metadata.termination_condition
+
+    def test_abs_return_and_metadata_carry_bounds(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver, abs_tol=1e6, max_iterations=50)
+        out = solver.solve_and_return_model(app.sp, eta)
+        meta = out.solutions.metadata
+        assert out.best_lb == meta.best_lb
+        assert out.best_ub == meta.best_ub
+        assert meta.abs_tol == 1e6
+        assert meta.bound_checking is True
+
+    def test_abs_zero_abs_tol_reaches_known_obj(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver, abs_tol=0, max_iterations=50)
+        out = solver.solve_and_return_model(app.sp, eta)
+        soln = next(iter(out.solutions.to_dict()["solutions"].values()))
+        assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
+        assert out.best_ub is not None
+        assert out.best_ub - out.best_lb <= solver.bound_smoothing_tol
+
 
 class TestBenders_Errors(unittest.TestCase):
     def test_allow_infeasible_subproblems(self):
@@ -372,3 +440,46 @@ class TestBenders_Persistent:
         assert x == pytest.approx(app.solution_values["x"])
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value)
+
+    def test_feas_restricted_abs_infeasible_start(self, mip_solver):
+        from sparow.sp.examples import feasibility_included_absolute_value
+
+        def _start_x_outside_box(sp, model):
+            b = next(iter(sp.int_to_FirstStageVar))
+            for var in sp.int_to_FirstStageVar[b].values():
+                var.set_value(10.0)  # UB = 5
+            return model
+
+        app = feasibility_included_absolute_value()
+        solver = BendersSolver()
+        solver.set_options(
+            solver=mip_solver,
+            subproblem_solver=mip_solver,
+            is_persistent_solver=True,
+            allow_infeasible_subproblems=True,
+            abs_tol=0,
+            max_iterations=50,
+        )
+        eta_bounds_map = {s: (-1_000, None) for s in app.sp.bundles}
+
+        feasible_flags = []
+
+        def _on_iteration(data):
+            benders = data.upper_model.benders
+            feasible_flags.append(benders.last_iterate_is_feasible())
+
+        out = solver.solve_and_return_model(
+            app.sp,
+            eta_bounds_map,
+            master_transforms=[_start_x_outside_box],
+            on_iteration=_on_iteration,
+        )
+
+        assert feasible_flags, "expected at least one generate_cut"
+        assert feasible_flags[0] is False
+        assert any(feasible_flags), "expected a later feasible iterate after feas cuts"
+        assert out.best_ub is not None
+        assert out.best_ub - out.best_lb <= solver.bound_smoothing_tol
+        soln = next(iter(out.solutions.to_dict()["solutions"].values()))
+        assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
+        assert soln["variables"][0]["value"] == pytest.approx(app.solution_values["x"])

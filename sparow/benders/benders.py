@@ -98,6 +98,36 @@ class BendersSolver(object):
         self.BendersTransform = "standard_lp"
         self.is_persistent_solver = None
         self.custom_b_upper = None
+        # None = that test is off. Existing convergence_tolerance is unused
+        # by the loop and is not an implicit abs_tol.
+        self.abs_tol = None
+        self.rel_tol = None
+        # Added under the surface so abs_tol=0 / rel_tol=0 mean
+        # numerically exact, not IEEE exact. Matches generate_cut
+        # default convergence_tol order; not the unused 1e-3
+        # self.convergence_tolerance.
+        self.bound_smoothing_tol = 1e-8
+        self.bound_checking = False
+        self.allow_infeasible_subproblems = False
+
+    _TIME_LIMIT_OPTION_KEYS = {
+        "TimeLimit",
+        "timelimit",
+        "time_limit",
+        "TIME_LIMIT",
+        "seconds",
+    }
+
+    def _warn_if_time_limit(self):
+        keys = set(self.solver_options) & self._TIME_LIMIT_OPTION_KEYS
+        if keys:
+            logger.warning(
+                "Master solver_options include %s. TimeLimit can make "
+                "Benders abs_tol/rel_tol termination unreliable because "
+                "value(master obj) is not guaranteed to be a valid lower "
+                "bound. BestBd is not read.",
+                sorted(keys),
+            )
 
     def set_options(
         self,
@@ -116,6 +146,9 @@ class BendersSolver(object):
         is_persistent_solver=False,
         allow_infeasible_subproblems=False,
         custom_b_upper=None,
+        abs_tol=None,
+        rel_tol=None,
+        bound_smoothing_tol=None,
     ):
 
         assert solver is not None, "Need to declare an upper level solver"
@@ -148,6 +181,21 @@ class BendersSolver(object):
             self.allow_infeasible_subproblems = allow_infeasible_subproblems
         if custom_b_upper is not None:
             self.custom_b_upper = custom_b_upper
+        if abs_tol is not None and abs_tol < 0:
+            raise ValueError(f"abs_tol must be >= 0, got {abs_tol}")
+        if rel_tol is not None and rel_tol < 0:
+            raise ValueError(f"rel_tol must be >= 0, got {rel_tol}")
+        if bound_smoothing_tol is not None and bound_smoothing_tol < 0:
+            raise ValueError(
+                f"bound_smoothing_tol must be >= 0, got {bound_smoothing_tol}"
+            )
+        if abs_tol is not None:
+            self.abs_tol = abs_tol
+        if rel_tol is not None:
+            self.rel_tol = rel_tol
+        if bound_smoothing_tol is not None:
+            self.bound_smoothing_tol = bound_smoothing_tol
+        self.bound_checking = (self.abs_tol is not None) or (self.rel_tol is not None)
 
         if loglevel is not None:
             if loglevel == "DEBUG" or loglevel == "VERBOSE":
@@ -623,6 +671,10 @@ class BendersSolver(object):
             print(f"  is_persistent_solver         {self.is_persistent_solver}")
             print(f"  allow_infeasible_subproblems {self.allow_infeasible_subproblems}")
             print(f"  custom_b_upper               {self.custom_b_upper}")
+            print(f"  abs_tol                      {self.abs_tol}")
+            print(f"  rel_tol                      {self.rel_tol}")
+            print(f"  bound_smoothing_tol          {self.bound_smoothing_tol}")
+            print(f"  bound_checking               {self.bound_checking}")
             print("")
 
         #
@@ -741,31 +793,66 @@ class BendersSolver(object):
             )
 
         #
+        if self.bound_checking:
+            self._warn_if_time_limit()
+        warned_nonoptimal_master = False
+        best_lb = -float("inf")
+        best_ub = float("inf")
+        L_k = None
+        eta_k = None
+
         iteration = 0
         termination_condition = "Termination: unknown"
         while True:
             iteration_timer.tic(None)
             iteration += 1
 
-            # possibly add a toc for this iteration start
-            # time_last_iter = iteration_timer.toc(None)
-
-            # possibly add a log iteration here.
-
-            # add Benders iteration here
-            # handle non-persistent case
             if self.is_persistent_solver:
-                # raise RuntimeError(f"Not Supporting Persitent Solvers at present")
                 res = opt.solve(tee=False, save_results=False)
-                cuts_added = upper_model.benders.generate_cut()
-                for c in cuts_added:
-                    opt.add_constraint(c)
             else:
                 res = opt.solve(
                     upper_model,
                     tee=False,
                 )
-                cuts_added = upper_model.benders.generate_cut()
+
+            if self.bound_checking:
+                # Freeze master obj and etas before generate_cut/evaluate.
+                # Do not reread value(obj) or eta.value after evaluation.
+                L_k = pyo.value(upper_model.obj)
+                eta_k = [pyo.value(eta) for eta in upper_model.benders.all_root_etas]
+                if not pyo.check_optimal_termination(res):
+                    if not warned_nonoptimal_master:
+                        logger.warning(
+                            "Master solve termination was %s. Continuing; "
+                            "abs_tol/rel_tol using value(obj) as L_k may be "
+                            "unreliable. BestBd is not read.",
+                            res.solver.termination_condition,
+                        )
+                        warned_nonoptimal_master = True
+                if L_k is not None:
+                    best_lb = max(best_lb, L_k)
+
+            cuts_added = upper_model.benders.generate_cut()
+            if self.is_persistent_solver:
+                for c in cuts_added:
+                    opt.add_constraint(c)
+
+            if self.bound_checking:
+                benders = upper_model.benders
+                if (
+                    L_k is not None
+                    and getattr(benders, "records_last_eval_results", False)
+                    and benders.last_iterate_is_feasible()
+                ):
+                    q_list = benders.last_subproblem_etas()
+                    if (
+                        q_list is not None
+                        and eta_k is not None
+                        and all(q is not None for q in q_list)
+                        and len(q_list) == len(eta_k)
+                    ):
+                        U_k = L_k + sum(q - e for q, e in zip(q_list, eta_k))
+                        best_ub = min(best_ub, U_k)
 
             if on_iteration:
                 on_iteration(
@@ -773,24 +860,41 @@ class BendersSolver(object):
                         iter_idx=iteration,
                         cuts_added=cuts_added,
                         upper_model=upper_model,
+                        L_k=L_k,
+                        eta_k=eta_k,
                     )
                 )
 
+            if self.bound_checking and best_ub < float("inf"):
+                gap = best_ub - best_lb
+                smooth = self.bound_smoothing_tol
+                abs_ok = self.abs_tol is not None and gap <= self.abs_tol + smooth
+                rel_ok = (
+                    self.rel_tol is not None
+                    and gap <= self.rel_tol * abs(best_lb) + smooth
+                )
+                if abs_ok or rel_ok:
+                    which = []
+                    if abs_ok:
+                        which.append(f"abs_tol ({gap} <= {self.abs_tol})")
+                    if rel_ok:
+                        which.append(f"rel_tol ({gap} <= {self.rel_tol}*|{best_lb}|)")
+                    termination_condition = "Termination: " + " or ".join(which)
+                    logger.info(termination_condition)
+                    break
+
             if len(cuts_added) == 0:
-                termination_condition = f"Termination: No Cuts Added"
+                termination_condition = "Termination: No Cuts Added"
                 logger.info(termination_condition)
                 break
-                # add no cuts added break here
 
-            # iteration break
             if iteration >= self.max_iterations:
-                termination_condition = f"Termination: max_iterations ({iteration} == {self.max_iterations})"
+                termination_condition = (
+                    f"Termination: max_iterations "
+                    f"({iteration} == {self.max_iterations})"
+                )
                 logger.info(termination_condition)
-
                 break
-
-            # consider adding an iterates haven't moved by more than tolerance
-            # note that is a finicky termination condition for Benders
 
         end_time = datetime.datetime.now()
 
@@ -798,6 +902,12 @@ class BendersSolver(object):
         sp_metadata.iterations = iteration
         sp_metadata.termination_condition = termination_condition
         sp_metadata.start_time = str(start_time)
+        sp_metadata.best_lb = best_lb
+        sp_metadata.best_ub = best_ub if best_ub < float("inf") else None
+        sp_metadata.abs_tol = self.abs_tol
+        sp_metadata.rel_tol = self.rel_tol
+        sp_metadata.bound_smoothing_tol = self.bound_smoothing_tol
+        sp_metadata.bound_checking = self.bound_checking
 
         variables = [
             solnpool.create_variable(
@@ -829,7 +939,12 @@ class BendersSolver(object):
         logger.info("-" * 70)
         logger.info("BendersSolver - STOP")
 
-        return munch.Munch(solutions=self.solutions, upper_model=upper_model)
+        return munch.Munch(
+            solutions=self.solutions,
+            upper_model=upper_model,
+            best_lb=best_lb,
+            best_ub=best_ub if best_ub < float("inf") else None,
+        )
 
     def solve(
         self,
