@@ -235,9 +235,16 @@ class TestBenders_NonPersistent:
         assert solver.bound_checking is False
         out = solver.solve_and_return_model(app.sp, eta)
         assert "No Cuts Added" in out.solutions.metadata.termination_condition
-        assert out.best_ub is None
         soln = next(iter(out.solutions.to_dict()["solutions"].values()))
         assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
+        # Tracking is always on; bound_checking only controls gap exit.
+        assert out.best_lb is not None
+        assert out.best_ub is not None
+        assert out.best_ub + solver.bound_smoothing_tol >= out.best_lb
+        assert out.best_ub == pytest.approx(app.objective_value, abs=1e-4)
+        assert out.best_lb == pytest.approx(app.objective_value, abs=1e-4)
+        assert out.solutions.metadata.best_lb == out.best_lb
+        assert out.solutions.metadata.best_ub == out.best_ub
 
     def test_abs_loose_abs_tol_stops_on_gap(self, mip_solver):
         app, solver, eta = self._abs_problem(mip_solver, abs_tol=1e6, max_iterations=50)
@@ -290,6 +297,93 @@ class TestBenders_NonPersistent:
         assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
         assert out.best_ub is not None
         assert out.best_ub - out.best_lb <= solver.bound_smoothing_tol
+
+    def test_abs_collect_off_returns_no_iterate_pool(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver)
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert out.feasible_iterate_pool is None
+        assert out.best_lb is not None
+        assert out.best_ub is not None
+
+    def test_abs_collect_on_archives_lower_bounding_iterates(self, mip_solver):
+        from or_topas.solnpool import PoolPolicy
+
+        app, solver, eta = self._abs_problem(mip_solver, collect_feasible_iterates=True)
+        out = solver.solve_and_return_model(app.sp, eta)
+        pool = out.feasible_iterate_pool
+        assert pool is not None
+        assert len(pool) >= 1
+        assert pool.policy == PoolPolicy.keep_all
+        assert pool.name == "feasible_benders_iterates"
+        for sol in pool:
+            assert sol.objective(0).name == "L_k"
+            assert sol.objective(1).name == "U_k"
+            assert (
+                sol.objective(1).value + solver.bound_smoothing_tol
+                >= sol.objective(0).value
+            )
+            assert len(sol.variables()) >= 2
+        first = next(iter(pool))
+        # First master on this model sits on the eta lower bound.
+        assert first.objective(0).value == pytest.approx(-1000, abs=1.0)
+
+    def test_abs_collect_stores_eta_k_not_Q_after_optimality_cut(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver, collect_feasible_iterates=True)
+        first = {}
+
+        def _on_iteration(data):
+            if first:
+                return
+            benders = data.upper_model.benders
+            if not benders.last_iterate_is_feasible():
+                return
+            q_list = benders.last_subproblem_etas()
+            if q_list is None or any(q is None for q in q_list):
+                return
+            first["eta_k"] = list(data.eta_k)
+            first["Q"] = list(q_list)
+            first["n_root"] = len(benders.root_vars)
+            first["cuts"] = list(data.cuts_added)
+
+        out = solver.solve_and_return_model(app.sp, eta, on_iteration=_on_iteration)
+        assert first, "expected a feasible first iterate with finite Q_s"
+        assert first["cuts"], "expected an optimality cut on the first iterate"
+        assert first["eta_k"] != first["Q"]
+        sol = next(iter(out.feasible_iterate_pool))
+        stored_etas = [v.value for v in sol.variables()[first["n_root"] :]]
+        assert stored_etas == pytest.approx(first["eta_k"])
+        assert stored_etas != pytest.approx(first["Q"])
+
+    def test_abs_collect_does_not_change_solve_return_type(self, mip_solver):
+        app, solver, eta = self._abs_problem(mip_solver, collect_feasible_iterates=True)
+        results = solver.solve(app.sp, eta)
+        assert hasattr(results, "to_dict")
+        soln = next(iter(results.to_dict()["solutions"].values()))
+        assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
+
+    def test_abs_user_keep_latest_retains_one(self, mip_solver):
+        from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+
+        app = simple_absolute_value()
+        pool = PyomoPoolManager()
+        pool.add_pool(
+            name="latest",
+            policy=PoolPolicy.keep_latest,
+            max_pool_size=1,
+        )
+        solver = BendersSolver()
+        solver.set_options(
+            solver=mip_solver,
+            subproblem_solver=mip_solver,
+            feasible_iterate_pool=pool,
+        )
+        eta = {s: (-1_000, None) for s in app.sp.bundles}
+        out = solver.solve_and_return_model(app.sp, eta)
+        assert out.feasible_iterate_pool is pool
+        assert len(pool) == 1
+        sol = next(iter(pool))
+        assert sol.objective(0).name == "L_k"
+        assert sol.objective(1).name == "U_k"
 
 
 class TestBenders_Errors(unittest.TestCase):
@@ -483,3 +577,91 @@ class TestBenders_Persistent:
         soln = next(iter(out.solutions.to_dict()["solutions"].values()))
         assert soln["objectives"][0]["value"] == pytest.approx(app.objective_value)
         assert soln["variables"][0]["value"] == pytest.approx(app.solution_values["x"])
+
+    def test_feas_restricted_abs_tracks_bounds_without_tols(self, mip_solver):
+        from sparow.sp.examples import feasibility_included_absolute_value
+
+        def _start_x_outside_box(sp, model):
+            b = next(iter(sp.int_to_FirstStageVar))
+            for var in sp.int_to_FirstStageVar[b].values():
+                var.set_value(10.0)
+            return model
+
+        app = feasibility_included_absolute_value()
+        solver = BendersSolver()
+        solver.set_options(
+            solver=mip_solver,
+            subproblem_solver=mip_solver,
+            is_persistent_solver=True,
+            allow_infeasible_subproblems=True,
+            max_iterations=50,
+        )
+        assert solver.bound_checking is False
+        eta_bounds_map = {s: (-1_000, None) for s in app.sp.bundles}
+        first_ub = []
+
+        def _on_iteration(data):
+            if not first_ub:
+                first_ub.append(data.upper_model.benders.last_iterate_is_feasible())
+
+        out = solver.solve_and_return_model(
+            app.sp,
+            eta_bounds_map,
+            master_transforms=[_start_x_outside_box],
+            on_iteration=_on_iteration,
+        )
+        assert first_ub and first_ub[0] is False
+        assert out.best_lb is not None
+        assert out.best_ub is not None
+        assert out.best_ub + solver.bound_smoothing_tol >= out.best_lb
+        assert "No Cuts Added" in out.solutions.metadata.termination_condition
+        assert out.solutions.metadata.best_lb == out.best_lb
+        assert out.solutions.metadata.best_ub == out.best_ub
+
+    def test_feas_restricted_abs_collect_skips_infeasible_start(self, mip_solver):
+        from sparow.sp.examples import feasibility_included_absolute_value
+
+        def _start_x_outside_box(sp, model):
+            b = next(iter(sp.int_to_FirstStageVar))
+            for var in sp.int_to_FirstStageVar[b].values():
+                var.set_value(10.0)  # UB = 5
+            return model
+
+        app = feasibility_included_absolute_value()
+        solver = BendersSolver()
+        solver.set_options(
+            solver=mip_solver,
+            subproblem_solver=mip_solver,
+            is_persistent_solver=True,
+            allow_infeasible_subproblems=True,
+            collect_feasible_iterates=True,
+            abs_tol=0,
+            max_iterations=50,
+        )
+        eta_bounds_map = {s: (-1_000, None) for s in app.sp.bundles}
+
+        feasible_flags = []
+
+        def _on_iteration(data):
+            benders = data.upper_model.benders
+            feasible_flags.append(benders.last_iterate_is_feasible())
+
+        out = solver.solve_and_return_model(
+            app.sp,
+            eta_bounds_map,
+            master_transforms=[_start_x_outside_box],
+            on_iteration=_on_iteration,
+        )
+
+        assert feasible_flags, "expected at least one generate_cut"
+        assert feasible_flags[0] is False
+        pool = out.feasible_iterate_pool
+        assert pool is not None
+        assert len(pool) == sum(1 for flag in feasible_flags if flag)
+        assert len(pool) >= 1
+        for sol in pool:
+            assert sol.objective(0).name == "L_k"
+            assert sol.objective(1).name == "U_k"
+            # First stored variable is the first-stage x, not the
+            # outside-the-box start of 10.
+            assert abs(sol.variables()[0].value) <= 5.0 + 1e-6

@@ -21,6 +21,13 @@ from sparow.sp.bundling import bundling_functions
 import or_topas.benders
 from or_topas.benders.benders_serial import BendersGenerator_Serial
 from or_topas.util.pyomo_utils import split_expr
+from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+from or_topas.solnpool.solution import (
+    ObjectiveInfo,
+    PyomoSolution,
+    Solution,
+    VariableInfo,
+)
 
 # logger settup
 logger = sparow.logs.logger
@@ -98,8 +105,9 @@ class BendersSolver(object):
         self.BendersTransform = "standard_lp"
         self.is_persistent_solver = None
         self.custom_b_upper = None
-        # None = that test is off. Existing convergence_tolerance is unused
-        # by the loop and is not an implicit abs_tol.
+        # None = that gap test is off. Existing convergence_tolerance is
+        # unused by the loop and is not an implicit abs_tol.
+        # best_lb / best_ub are tracked on every solve regardless.
         self.abs_tol = None
         self.rel_tol = None
         # Added under the surface so abs_tol=0 / rel_tol=0 mean
@@ -109,6 +117,13 @@ class BendersSolver(object):
         self.bound_smoothing_tol = 1e-8
         self.bound_checking = False
         self.allow_infeasible_subproblems = False
+        # Feasible-iterate archive. Off by default so existing solves
+        # do not grow a pool. A user-supplied PyomoPoolManager also
+        # enables collection. See set_options.
+        self.collect_feasible_iterates = False
+        self.feasible_iterate_pool = None
+        self._feasible_iterate_pool_user_supplied = False
+        self._warned_iterate_pool_ranking = False
 
     _TIME_LIMIT_OPTION_KEYS = {
         "TimeLimit",
@@ -128,6 +143,150 @@ class BendersSolver(object):
                 "bound. BestBd is not read.",
                 sorted(keys),
             )
+
+    _ITERATE_POOL_RANKING_WARNING = (
+        "Feasible Benders iterates store two objectives: "
+        "L_k = c'x + sum eta (master lower bound, objectives[0]) and "
+        "U_k = c'x + sum Q_s (evaluated upper bound, objectives[1]). "
+        "keep_best / keep_pareto rank on those scalars. Default keep_best "
+        "uses objective_index=0 and keeps the smallest L_k (earliest, "
+        "loosest masters), not the best first-stage x. "
+        "keep_best(..., objective_index=1) ranks U_k. "
+        "keep_pareto on (L_k, U_k) is not a gap frontier: a single sense "
+        "cannot maximize L and minimize U. "
+        "Use keep_all, keep_latest, or keep_latest_unique unless that "
+        "ranking is intentional."
+    )
+
+    def _validate_feasible_iterate_pool(self, pool):
+        if pool is None:
+            return None
+        sparow_cls = getattr(solnpool, "SparowPoolManager", None)
+        if sparow_cls is not None and isinstance(pool, sparow_cls):
+            raise TypeError(
+                "feasible_iterate_pool must be an or_topas "
+                "PyomoPoolManager, not a sparow SparowPoolManager. "
+                "The SPAROW pool uses a different as_solution contract."
+            )
+        if not isinstance(pool, PyomoPoolManager):
+            raise TypeError(
+                "feasible_iterate_pool must be an or_topas "
+                f"PyomoPoolManager, got {type(pool).__name__}"
+            )
+        if not callable(getattr(pool, "add", None)):
+            raise TypeError(
+                "feasible_iterate_pool must provide an add() method, "
+                f"got {type(pool).__name__}"
+            )
+        return pool
+
+    def _warn_if_iterate_pool_ranks_lower_bounds(self, pool):
+        if pool is None or self._warned_iterate_pool_ranking:
+            return
+        policy = getattr(pool, "policy", None)
+        if policy in (PoolPolicy.keep_best, PoolPolicy.keep_pareto):
+            logger.warning(self._ITERATE_POOL_RANKING_WARNING)
+            self._warned_iterate_pool_ranking = True
+
+    def _setup_feasible_iterate_pool(self):
+        """
+        Resolve the working PyomoPoolManager for this solve.
+
+        A user-supplied manager is reused as-is (they own policy and
+        max_pool_size). If collection is on and no user pool was given,
+        allocate a fresh keep_all pool named feasible_benders_iterates.
+        Does not rewrite self.collect_feasible_iterates.
+        """
+        if not (
+            self.collect_feasible_iterates or self.feasible_iterate_pool is not None
+        ):
+            return None
+        if (
+            self._feasible_iterate_pool_user_supplied
+            and self.feasible_iterate_pool is not None
+        ):
+            self._warn_if_iterate_pool_ranks_lower_bounds(self.feasible_iterate_pool)
+            return self.feasible_iterate_pool
+        pool = PyomoPoolManager()
+        pool.add_pool(
+            name="feasible_benders_iterates",
+            policy=PoolPolicy.keep_all,
+        )
+        self.feasible_iterate_pool = pool
+        return pool
+
+    def _capture_master_iterate(self, upper_model):
+        """Read L_k, x^k, and η^k from the live master.
+
+        Call after the master solve and before generate_cut. Those
+        three numbers must stay a consistent pre-cut snapshot: L_k
+        for best_lb, (x^k, η^k) for the iterate pool, and η^k for
+        U_k = L_k + sum(Q_s - η_s^k). This does not fix() anything.
+        """
+        benders = upper_model.benders
+        L_k = pyo.value(upper_model.obj)
+        x_k = [pyo.value(v) for v in benders.root_vars]
+        eta_k = [pyo.value(eta) for eta in benders.all_root_etas]
+        return L_k, x_k, eta_k
+
+    @staticmethod
+    def _feasible_iterate_solution(root_vars, etas, x_vals, eta_vals, L_k, U_k):
+        """
+        Build a PyomoSolution from captured values.
+
+        PyomoSolution.__init__ only accepts live Pyomo components. We
+        construct from the pre-cut capture so generate_cut cannot change
+        the payload, and keep the PyomoSolution type for load_into_model.
+        """
+        variables = []
+        index = 0
+        for var, val in zip(root_vars, x_vals):
+            continuous = var.is_continuous()
+            variables.append(
+                VariableInfo(
+                    value=val if continuous else round(val),
+                    fixed=var.is_fixed(),
+                    name=str(var),
+                    index=index,
+                    discrete=not continuous,
+                )
+            )
+            index += 1
+        for var, val in zip(etas, eta_vals):
+            variables.append(
+                VariableInfo(
+                    value=val,
+                    fixed=var.is_fixed(),
+                    name=str(var),
+                    index=index,
+                    discrete=not var.is_continuous(),
+                )
+            )
+            index += 1
+        objectives = [
+            ObjectiveInfo(value=float(L_k), name="L_k", index=0),
+            ObjectiveInfo(value=float(U_k), name="U_k", index=1),
+        ]
+        soln = object.__new__(PyomoSolution)
+        Solution.__init__(soln, variables=variables, objectives=objectives)
+        return soln
+
+    def _add_feasible_iterate(self, *, pool, upper_model, L_k, U_k, x_k, eta_k):
+        """
+        Archive x^k + eta^k from the pre-cut capture with objectives
+        L_k and U_k. Does not write Q_s onto the master etas.
+        Live master values after generate_cut are stale and unused.
+        """
+        benders = upper_model.benders
+        soln = self._feasible_iterate_solution(
+            root_vars=benders.root_vars,
+            etas=benders.all_root_etas,
+            x_vals=x_k,
+            eta_vals=eta_k,
+            L_k=L_k,
+            U_k=U_k,
+        )
+        pool.add(soln)
 
     def set_options(
         self,
@@ -149,6 +308,8 @@ class BendersSolver(object):
         abs_tol=None,
         rel_tol=None,
         bound_smoothing_tol=None,
+        collect_feasible_iterates=None,
+        feasible_iterate_pool=None,
     ):
 
         assert solver is not None, "Need to declare an upper level solver"
@@ -196,6 +357,28 @@ class BendersSolver(object):
         if bound_smoothing_tol is not None:
             self.bound_smoothing_tol = bound_smoothing_tol
         self.bound_checking = (self.abs_tol is not None) or (self.rel_tol is not None)
+
+        if collect_feasible_iterates is not None and collect_feasible_iterates not in (
+            True,
+            False,
+        ):
+            raise ValueError(
+                "collect_feasible_iterates must be a bool, "
+                f"got {collect_feasible_iterates!r}"
+            )
+        if feasible_iterate_pool is not None:
+            self.feasible_iterate_pool = self._validate_feasible_iterate_pool(
+                feasible_iterate_pool
+            )
+            self._feasible_iterate_pool_user_supplied = True
+            self.collect_feasible_iterates = True
+            self._warn_if_iterate_pool_ranks_lower_bounds(self.feasible_iterate_pool)
+        if collect_feasible_iterates is not None:
+            if feasible_iterate_pool is None:
+                self.collect_feasible_iterates = collect_feasible_iterates
+            else:
+                # A passed pool enables collection even if the flag is False.
+                self.collect_feasible_iterates = True
 
         if loglevel is not None:
             if loglevel == "DEBUG" or loglevel == "VERBOSE":
@@ -675,6 +858,8 @@ class BendersSolver(object):
             print(f"  rel_tol                      {self.rel_tol}")
             print(f"  bound_smoothing_tol          {self.bound_smoothing_tol}")
             print(f"  bound_checking               {self.bound_checking}")
+            print(f"  collect_feasible_iterates    {self.collect_feasible_iterates}")
+            print(f"  feasible_iterate_pool        {self.feasible_iterate_pool}")
             print("")
 
         #
@@ -793,6 +978,8 @@ class BendersSolver(object):
             )
 
         #
+        iterate_pool = self._setup_feasible_iterate_pool()
+        collecting = iterate_pool is not None
         if self.bound_checking:
             self._warn_if_time_limit()
         warned_nonoptimal_master = False
@@ -800,6 +987,7 @@ class BendersSolver(object):
         best_ub = float("inf")
         L_k = None
         eta_k = None
+        x_k = None
 
         iteration = 0
         termination_condition = "Termination: unknown"
@@ -815,44 +1003,53 @@ class BendersSolver(object):
                     tee=False,
                 )
 
-            if self.bound_checking:
-                # Freeze master obj and etas before generate_cut/evaluate.
-                # Do not reread value(obj) or eta.value after evaluation.
-                L_k = pyo.value(upper_model.obj)
-                eta_k = [pyo.value(eta) for eta in upper_model.benders.all_root_etas]
-                if not pyo.check_optimal_termination(res):
-                    if not warned_nonoptimal_master:
-                        logger.warning(
-                            "Master solve termination was %s. Continuing; "
-                            "abs_tol/rel_tol using value(obj) as L_k may be "
-                            "unreliable. BestBd is not read.",
-                            res.solver.termination_condition,
-                        )
-                        warned_nonoptimal_master = True
-                if L_k is not None:
-                    best_lb = max(best_lb, L_k)
+            # Capture master x, obj, and etas before generate_cut.
+            # best_lb / best_ub are tracked on every solve; bound_checking
+            # only controls gap termination. Do not reread value(obj) or
+            # eta.value after evaluation.
+            L_k, x_k, eta_k = self._capture_master_iterate(upper_model)
+            if self.bound_checking and not pyo.check_optimal_termination(res):
+                if not warned_nonoptimal_master:
+                    logger.warning(
+                        "Master solve termination was %s. Continuing; "
+                        "abs_tol/rel_tol using value(obj) as L_k may be "
+                        "unreliable. BestBd is not read.",
+                        res.solver.termination_condition,
+                    )
+                    warned_nonoptimal_master = True
+            if L_k is not None:
+                best_lb = max(best_lb, L_k)
 
             cuts_added = upper_model.benders.generate_cut()
             if self.is_persistent_solver:
                 for c in cuts_added:
                     opt.add_constraint(c)
 
-            if self.bound_checking:
-                benders = upper_model.benders
+            U_k = None
+            benders = upper_model.benders
+            if (
+                L_k is not None
+                and eta_k is not None
+                and getattr(benders, "records_last_eval_results", False)
+                and benders.last_iterate_is_feasible()
+            ):
+                q_list = benders.last_subproblem_etas()
                 if (
-                    L_k is not None
-                    and getattr(benders, "records_last_eval_results", False)
-                    and benders.last_iterate_is_feasible()
+                    q_list is not None
+                    and all(q is not None for q in q_list)
+                    and len(q_list) == len(eta_k)
                 ):
-                    q_list = benders.last_subproblem_etas()
-                    if (
-                        q_list is not None
-                        and eta_k is not None
-                        and all(q is not None for q in q_list)
-                        and len(q_list) == len(eta_k)
-                    ):
-                        U_k = L_k + sum(q - e for q, e in zip(q_list, eta_k))
-                        best_ub = min(best_ub, U_k)
+                    U_k = L_k + sum(q - e for q, e in zip(q_list, eta_k))
+                    best_ub = min(best_ub, U_k)
+                    if collecting:
+                        self._add_feasible_iterate(
+                            pool=iterate_pool,
+                            upper_model=upper_model,
+                            L_k=L_k,
+                            U_k=U_k,
+                            x_k=x_k,
+                            eta_k=eta_k,
+                        )
 
             if on_iteration:
                 on_iteration(
@@ -862,6 +1059,9 @@ class BendersSolver(object):
                         upper_model=upper_model,
                         L_k=L_k,
                         eta_k=eta_k,
+                        U_k=U_k,
+                        best_lb=best_lb if best_lb > -float("inf") else None,
+                        best_ub=best_ub if best_ub < float("inf") else None,
                     )
                 )
 
@@ -902,12 +1102,18 @@ class BendersSolver(object):
         sp_metadata.iterations = iteration
         sp_metadata.termination_condition = termination_condition
         sp_metadata.start_time = str(start_time)
-        sp_metadata.best_lb = best_lb
-        sp_metadata.best_ub = best_ub if best_ub < float("inf") else None
+        reported_best_lb = best_lb if best_lb > -float("inf") else None
+        reported_best_ub = best_ub if best_ub < float("inf") else None
+        sp_metadata.best_lb = reported_best_lb
+        sp_metadata.best_ub = reported_best_ub
         sp_metadata.abs_tol = self.abs_tol
         sp_metadata.rel_tol = self.rel_tol
         sp_metadata.bound_smoothing_tol = self.bound_smoothing_tol
         sp_metadata.bound_checking = self.bound_checking
+        sp_metadata.collect_feasible_iterates = collecting
+        sp_metadata.n_feasible_iterates = (
+            len(iterate_pool) if iterate_pool is not None else 0
+        )
 
         variables = [
             solnpool.create_variable(
@@ -942,8 +1148,9 @@ class BendersSolver(object):
         return munch.Munch(
             solutions=self.solutions,
             upper_model=upper_model,
-            best_lb=best_lb,
-            best_ub=best_ub if best_ub < float("inf") else None,
+            best_lb=reported_best_lb,
+            best_ub=reported_best_ub,
+            feasible_iterate_pool=iterate_pool,
         )
 
     def solve(
