@@ -131,3 +131,139 @@ class TestBendersUtilities:
                 subproblem_solver=name,
                 bound_smoothing_tol=-1e-12,
             )
+
+    def test_default_collect_feasible_iterates_off(self):
+        s = BendersSolver()
+        assert s.collect_feasible_iterates is False
+        assert s.feasible_iterate_pool is None
+
+    def test_collect_flag_enables_without_creating_pool(self):
+        s = BendersSolver()
+        name = _solver_name()
+        s.set_options(
+            solver=name,
+            subproblem_solver=name,
+            collect_feasible_iterates=True,
+        )
+        assert s.collect_feasible_iterates is True
+        assert s.feasible_iterate_pool is None
+
+    def test_user_pool_enables_collection(self):
+        from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+
+        s = BendersSolver()
+        name = _solver_name()
+        pool = PyomoPoolManager()
+        pool.add_pool(name="user_iterates", policy=PoolPolicy.keep_all)
+        s.set_options(
+            solver=name,
+            subproblem_solver=name,
+            feasible_iterate_pool=pool,
+        )
+        assert s.collect_feasible_iterates is True
+        assert s.feasible_iterate_pool is pool
+
+    def test_user_pool_wins_over_collect_false(self):
+        from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+
+        s = BendersSolver()
+        name = _solver_name()
+        pool = PyomoPoolManager()
+        pool.add_pool(
+            name="user_iterates",
+            policy=PoolPolicy.keep_latest,
+            max_pool_size=3,
+        )
+        s.set_options(
+            solver=name,
+            subproblem_solver=name,
+            collect_feasible_iterates=False,
+            feasible_iterate_pool=pool,
+        )
+        assert s.collect_feasible_iterates is True
+        assert s.feasible_iterate_pool is pool
+
+    def test_non_pyomo_pool_rejected(self):
+        s = BendersSolver()
+        name = _solver_name()
+        with pytest.raises(TypeError, match="PyomoPoolManager"):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                feasible_iterate_pool=object(),
+            )
+        assert s.feasible_iterate_pool is None
+        assert s.collect_feasible_iterates is False
+
+    def test_bare_pyomo_pool_manager_warns_keep_best(self, caplog):
+        import logging
+        from or_topas.solnpool import PyomoPoolManager
+
+        s = BendersSolver()
+        name = _solver_name()
+        pool = PyomoPoolManager()
+        with caplog.at_level(logging.WARNING):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                feasible_iterate_pool=pool,
+            )
+        assert any("L_k" in rec.message for rec in caplog.records)
+
+    def test_explicit_keep_best_warns(self, caplog):
+        import logging
+        from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+
+        s = BendersSolver()
+        name = _solver_name()
+        pool = PyomoPoolManager()
+        pool.add_pool(name="best", policy=PoolPolicy.keep_best)
+        with caplog.at_level(logging.WARNING):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                feasible_iterate_pool=pool,
+            )
+        assert any("L_k" in rec.message for rec in caplog.records)
+
+    def test_keep_all_does_not_warn(self, caplog):
+        import logging
+        from or_topas.solnpool import PyomoPoolManager, PoolPolicy
+
+        s = BendersSolver()
+        name = _solver_name()
+        pool = PyomoPoolManager()
+        pool.add_pool(name="all", policy=PoolPolicy.keep_all)
+        with caplog.at_level(logging.WARNING):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                feasible_iterate_pool=pool,
+            )
+        assert not any("keep_best" in rec.message for rec in caplog.records)
+        assert not any("keep_pareto" in rec.message for rec in caplog.records)
+
+    def test_sparow_pool_is_rejected(self):
+        from sparow import solnpool as sparow_solnpool
+
+        s = BendersSolver()
+        name = _solver_name()
+        with pytest.raises(TypeError, match="PyomoPoolManager"):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                feasible_iterate_pool=sparow_solnpool.SparowPoolManager(),
+            )
+        assert s.feasible_iterate_pool is None
+        assert s.collect_feasible_iterates is False
+
+    def test_collect_flag_rejects_non_bool(self):
+        s = BendersSolver()
+        name = _solver_name()
+        with pytest.raises(ValueError, match="collect_feasible_iterates"):
+            s.set_options(
+                solver=name,
+                subproblem_solver=name,
+                collect_feasible_iterates="yes",
+            )
+        assert s.collect_feasible_iterates is False
