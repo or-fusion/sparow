@@ -1,14 +1,6 @@
-############
-Formulation
-############
-
-Formulating Stochastic Programs with Sparow
-=============================================
-
-This guide illustrates the general Sparow API for formulating stochastic programming problems using the newsvendor example as a concrete illustration. The same pattern applies to all Sparow formulations.
-
-Sparow's Formulation API
-------------------------
+###############################
+Formulating Stochastic Programs
+###############################
 
 Sparow provides a structured API for defining stochastic programming problems. The key components are:
 
