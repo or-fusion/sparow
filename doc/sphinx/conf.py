@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "or-topas"
-copyright = "2025, or-topas developers"
-author = "or-topas developers"
+project = "Sparow"
+copyright = "2026, Sandia National Laboratories"
+author = "Sparow Developers"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

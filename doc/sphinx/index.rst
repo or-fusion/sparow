@@ -1,11 +1,43 @@
-sparow documentation
+Sparow Documentation
 ====================
 
-TESTING
-
+Sparow is a Python package for formulating and solving stochastic programming applications.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   
+   :caption: Getting Started:
+
    overview
+   installation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide:
+
+   formulation
+   solvers/ef
+   solvers/ph
+   solvers/benders
+   confidence_intervals
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples:
+
+   examples/absolute_value
+   examples/facility_location
+   examples/farmers
+   examples/newsvendor
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference:
+
+   api/sparow
+
+Indices and Tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
