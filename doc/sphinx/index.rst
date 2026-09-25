@@ -14,7 +14,9 @@ Sparow is a Python package for formulating and solving stochastic programming ap
    :maxdepth: 2
    :caption: Getting Started:
 
-   formulation
+   getting_started/simple
+   getting_started/bundles
+   getting_started/multifidelity
 
 .. toctree::
    :maxdepth: 2
