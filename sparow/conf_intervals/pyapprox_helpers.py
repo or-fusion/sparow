@@ -8,13 +8,15 @@ import numpy as np
 import math
 import time
 
-from pyapprox.statest.statistics import MultiOutputMean
-from pyapprox.statest.mc_estimator import MCEstimator
-from pyapprox.statest import MFMCEstimator
-from pyapprox.statest.acv import default_allocator_factory
-from pyapprox.statest.acv.base import FittedACVEstimator
-from pyapprox.statest.allocation import MCAllocator
-from pyapprox.optimization.minimize.scipy.slsqp import ScipySLSQPOptimizer
+import or_topas
+with or_topas.util.try_import() as pyapprox_available:
+    from pyapprox.statest.statistics import MultiOutputMean
+    from pyapprox.statest.mc_estimator import MCEstimator
+    from pyapprox.statest import MFMCEstimator
+    from pyapprox.statest.acv import default_allocator_factory
+    from pyapprox.statest.acv.base import FittedACVEstimator
+    from pyapprox.statest.allocation import MCAllocator
+    from pyapprox.optimization.minimize.scipy.slsqp import ScipySLSQPOptimizer
 
 from sparow.conf_intervals.pyapprox_interface import (
     convert_pyapprox_allocation_to_acvmrp_params,

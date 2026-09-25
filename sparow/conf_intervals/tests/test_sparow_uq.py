@@ -2,6 +2,10 @@ import math
 import numpy as np
 import pytest
 
+import or_topas
+with or_topas.util.try_import() as pyapprox_available:
+    import pyapprox
+
 from sparow.conf_intervals.options import UQOptions
 from sparow.conf_intervals.standard_mrp import StandardMRP
 from sparow.conf_intervals.acv_mrp import ACVMRP
@@ -375,6 +379,7 @@ def test_convert_pyapprox_allocation_to_acvmrp_params():
     assert M == 12
 
 
+@pytest.mark.skipif(not pyapprox_available, reason="pyapprox not installed")
 def test_run_pyapprox_pilot_is_reproducible_and_cost_delay_is_reflected(
     facilityloc_ensemble,
 ):
@@ -430,6 +435,7 @@ def test_run_pyapprox_pilot_is_reproducible_and_cost_delay_is_reflected(
     assert np.all(np.isfinite(pilot_1["cov_np"]))
 
 
+@pytest.mark.skipif(not pyapprox_available, reason="pyapprox not installed")
 def test_allocate_pyapprox_budget_respects_budget(facilityloc_ensemble):
     """
     Using one fixed pilot study, check two budget regimes:

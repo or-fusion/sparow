@@ -20,10 +20,13 @@ import time
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from pyapprox.util.backends.numpy import NumpyBkd
-from pyapprox_benchmarks.problems.multifidelity_forward_uq import (
-    MultifidelityForwardUQProblem,
-)
+import or_topas
+
+with or_topas.util.try_import() as pyapprox_available:
+    from pyapprox.util.backends.numpy import NumpyBkd
+    from pyapprox_benchmarks.problems.multifidelity_forward_uq import (
+        MultifidelityForwardUQProblem,
+    )
 
 from sparow.conf_intervals.protocols import (
     StochasticProgramModelProtocol,
