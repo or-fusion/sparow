@@ -12,12 +12,22 @@ Sparow is a Python package for formulating and solving stochastic programming ap
 
 .. toctree::
    :maxdepth: 2
-   :caption: User Guide:
+   :caption: Models:
 
    formulation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Solvers:
+
    solvers/ef
    solvers/ph
    solvers/benders
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Uncertainty Quantification:
+
    confidence_intervals
 
 .. toctree::
