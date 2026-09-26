@@ -38,6 +38,9 @@ classifiers=[
         "Topic :: Software Development :: Libraries :: Python Modules",
     ]
 
+[project.scripts]
+setup-sparow-sp = "sparow.bin.setup_sparow_sp:main"
+
 [project.optional-dependencies]
 plot = [
     "pandas>=3.0.3",
