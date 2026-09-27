@@ -6,7 +6,19 @@ build-backend = "setuptools.build_meta"
 name="sparow"
 version="1.0.1"
 requires-python = ">=3.11"
-dependencies = ["Pyomo", "munch", "mpi-sppy", "or-topas", "pytest", "pytest-cov", "scikit-learn", "rich", "parameterized", "pyapprox", "pyapprox-benchmarks", "numpy>=2.2.6"]
+dependencies = [
+    "Pyomo",
+    "munch",
+    "mpi-sppy",
+    "or-topas",
+    "pytest",
+    "pytest-cov",
+    "scikit-learn",
+    "rich",
+    "parameterized",
+    #"pyapprox",
+    #"pyapprox-benchmarks",
+    "numpy>=2.2.6"]
 readme = {file = "README.md", content-type = "text/markdown"}
 description="Stochastic Programming And Related Optimization Workflows"
 classifiers=[
@@ -25,6 +37,9 @@ classifiers=[
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ]
+
+[project.scripts]
+setup-sparow-sp = "sparow.bin.setup_sparow_sp:main"
 
 [project.optional-dependencies]
 plot = [

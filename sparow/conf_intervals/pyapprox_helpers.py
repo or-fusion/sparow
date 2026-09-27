@@ -9,6 +9,7 @@ import math
 import time
 
 import or_topas
+
 with or_topas.util.try_import() as pyapprox_available:
     from pyapprox.statest.statistics import MultiOutputMean
     from pyapprox.statest.mc_estimator import MCEstimator
