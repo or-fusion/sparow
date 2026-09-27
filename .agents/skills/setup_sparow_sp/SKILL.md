@@ -1,5 +1,5 @@
 ---
-name: sparow-app-setup
+name: setup_sparow_sp
 description: Generate a custom sparow stochastic program application package from a user-supplied app script defining create_sp(scenario_data), using the setup-sparow-sp command. Use when asked to scaffold, set up, or generate a sparow SP application or a create_sp() module for a new stochastic program, or when wiring an existing Pyomo model builder into sparow.
 ---
 
