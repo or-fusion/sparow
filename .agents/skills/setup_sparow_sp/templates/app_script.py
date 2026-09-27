@@ -15,7 +15,6 @@ import pyomo.environ as pyo
 
 from sparow.sp import stochastic_program
 
-
 #: Parameters constant across every scenario.  Keys must not collide with keys
 #: in the scenario file's "data" block or in any scenario entry; the command
 #: checks that for you as long as this dict is named APP_DATA.

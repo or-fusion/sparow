@@ -93,7 +93,8 @@ SCENARIO_FILE = "scenarios.json"
 #: The module is named <package>._app, the same as the copied form, so the app
 #: script's `__package__` is the generated package in both modes and relative
 #: imports of model directories work either way.
-LOAD_IN_PLACE = string.Template('''#: App script, loaded from where it lives rather than copied into this package.
+LOAD_IN_PLACE = string.Template(
+    """#: App script, loaded from where it lives rather than copied into this package.
 APP_SCRIPT = $path
 
 
@@ -107,7 +108,8 @@ def _load_app_script(path):
 
 
 $app_module = _load_app_script(APP_SCRIPT)
-''')
+"""
+)
 
 
 #: The generated __init__.py.  The placeholders are filled in by main():
@@ -654,7 +656,9 @@ def main(argv=None):
     scenario_models = args.scenario_models
     if scenario_models is not None:
         if APP_MODULE in ids:
-            raise SystemExit(f"scenario ID {APP_MODULE!r} is reserved for the app script")
+            raise SystemExit(
+                f"scenario ID {APP_MODULE!r} is reserved for the app script"
+            )
     elif customize is not None:
         # Not an error: the same app script may be used with and without
         # per-scenario copies.
