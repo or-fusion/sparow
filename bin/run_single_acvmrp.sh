@@ -139,7 +139,7 @@ echo "n: ${N}"
 echo "m: ${M_PAIRED}"
 echo "M: ${M_LF_ONLY}"
 
-python -m run_grid_experiments \
+python3 -m run_grid_experiments \
     --model-module "${MODEL_MODULE}" \
     --model-name "${MODEL_NAME}" \
     --lf-model-type "${LF_MODEL_TYPE}" \

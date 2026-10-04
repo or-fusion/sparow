@@ -162,7 +162,7 @@ echo "Use existing xhat flag: ${USE_EXISTING_XHAT_FLAG}"
 # .... but may change this in future refactor
 
 if [ "${ACV_MRP}" = "true" ]; then
-    python -m run_grid_experiments \
+    python3 -m run_grid_experiments \
         --grid-experiment \
         --acv-mrp \
         --model-module "${MODEL_MODULE}" \
@@ -189,10 +189,10 @@ if [ "${ACV_MRP}" = "true" ]; then
     echo "Wrote ${ACTUAL_RESULTS_CSV}"
     echo "Wrote ${ACTUAL_XHAT_FILE}"
 
-    python "${PLOT_SCRIPT_ACV}" "${ACTUAL_RESULTS_CSV}"
+    python3 "${PLOT_SCRIPT_ACV}" "${ACTUAL_RESULTS_CSV}"
     echo "ACVMRP plots created."
 else 
-    python -m run_grid_experiments \
+    python3 -m run_grid_experiments \
         --grid-experiment \
         --model-module "${MODEL_MODULE}" \
         --model-name "${MODEL_NAME}" \
@@ -216,7 +216,7 @@ else
     echo "Wrote ${ACTUAL_RESULTS_CSV}"
     echo "Wrote ${ACTUAL_XHAT_FILE}"
 
-    python "${PLOT_SCRIPT_STANDARD}" "${ACTUAL_RESULTS_CSV}"
+    python3 "${PLOT_SCRIPT_STANDARD}" "${ACTUAL_RESULTS_CSV}"
     echo "Standard MRP plots created."
 fi
 
