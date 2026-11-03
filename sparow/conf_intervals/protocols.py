@@ -22,24 +22,26 @@ class ScenarioPopulationProtocol(Protocol):
     Protocol for storing a finite population of scenarios that we'd like to
     sample from.
 
-    A scenario population stores the full finite set of scenario dictionaries
-    that can be sampled from. It also knows how to validate the scenario format.
+    A scenario population stores the full finite set of scenarios that can be
+    sampled from, as a dictionary that maps scenario IDs to scenario
+    specifications of the form {"data": {...}, "probability": p}. It also knows how to validate the scenario format.
     """
 
-    def scenarios(self) -> List[Dict[str, Any]]:
+    def scenarios(self) -> Dict[Any, Dict[str, Any]]:
         """
         Return the full finite scenario population.
         """
         ...
 
-    def validate(self, scenarios: Optional[List[Dict[str, Any]]] = None) -> None:
+    def validate(self, scenarios: Optional[Dict[Any, Dict[str, Any]]] = None) -> None:
         """
         Validate either the provided scenarios or the full population.
 
         Parameters
         ----------
-        scenarios : list of dict, optional
-            Scenario dictionaries to validate. If None, validate the full population.
+        scenarios : dict, optional
+            Scenarios to validate, which map scenario IDs to scenario
+            specifications. If None, validate the full population.
         """
         ...
 
@@ -57,23 +59,23 @@ class ScenarioEncodingProtocol(Protocol):
 
     def scenario_vector_keys(self) -> List[str]:
         """
-        Return the scenario dictionary keys that define the uncertain data.
+        Return the scenario data keys that define the uncertain data.
         """
         ...
 
     def encode_scenario_vector(self, scenario: Dict[str, Any]) -> List[float]:
         """
-        Convert one scenario dictionary into a flat numeric vector.
+        Convert one scenario specification into a flat numeric vector.
         """
         ...
 
     def decode_scenario_vector(
         self,
         vector: Sequence[float],
-        scenario_id: str,
     ) -> Dict[str, Any]:
         """
-        Convert a flat numeric vector back into a scenario dictionary.
+        Convert a flat numeric vector back into a scenario specification,
+        i.e. a dictionary with a 'data' key.
         """
         ...
 
@@ -96,7 +98,7 @@ class ScenarioSamplerProtocol(Protocol):
         self,
         n: int,
         replication_id: int,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[Any, Dict[str, Any]]:
         """
         Draw one batch, comprised of n i.i.d.scenario draws.
 
@@ -150,7 +152,7 @@ class StochasticProgramModelProtocol(Protocol):
         """
         ...
 
-    def build_model_data(self, scenarios: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def build_model_data(self, scenarios: Dict[Any, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Build model data from a scenario batch.
         """
@@ -191,8 +193,8 @@ class StochasticProgramModelProtocol(Protocol):
         n: int,
         replication_id: int,
         nested_sampling: bool = False,
-        precomputed_supersets: Optional[Dict[int, List[Dict[str, Any]]]] = None,
-    ) -> List[Dict[str, Any]]:
+        precomputed_supersets: Optional[Dict[int, Dict[Any, Dict[str, Any]]]] = None,
+    ) -> Dict[Any, Dict[str, Any]]:
         """
         Draw one scenario batch for a replication.
         """
@@ -201,7 +203,7 @@ class StochasticProgramModelProtocol(Protocol):
     def replication_gap(
         self,
         xhat: Dict[str, float],
-        scenarios: List[Dict[str, Any]],
+        scenarios: Dict[Any, Dict[str, Any]],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, float]:

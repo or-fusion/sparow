@@ -14,6 +14,75 @@ import sparow.logs
 
 logger = sparow.logs.logger
 
+_SCENARIO_KEYS = {"data", "probability"}
+
+
+def validate_scenarios(scenarios: Any, model_name: str | None = None) -> dict:
+    """
+    Validate the "scenarios" element of model data.
+
+    Scenarios are specified as a dictionary that maps scenario IDs to
+    scenario specifications.  Each scenario specification is a dictionary
+    with the following optional keys:
+
+    - "data": a dictionary of scenario-specific data
+    - "probability": the scenario probability
+
+    For example::
+
+        {
+            1: {"data": {"d": 15}, "probability": 0.4},
+            2: {"data": {"d": 60}, "probability": 0.6},
+        }
+
+    Parameters
+    ----------
+    scenarios : dict
+        The scenario specifications.
+    model_name : str, optional
+        The name of the model (used in error messages).
+
+    Returns
+    -------
+    dict
+        A dictionary mapping scenario IDs to dictionaries with keys "data"
+        and (optionally) "probability".
+
+    Raises
+    ------
+    TypeError
+        If the scenarios are not specified with a dictionary.
+    ValueError
+        If a scenario specification is not valid.
+    """
+    if not isinstance(scenarios, dict):
+        raise TypeError(
+            f"The scenarios for model '{model_name}' must be specified with a "
+            f"dictionary that maps scenario IDs to scenario specifications, "
+            f"e.g. {{1: {{'data': {{'d': 15}}, 'probability': 0.1}}}}.  "
+            f"Received an object of type {type(scenarios).__name__}."
+        )
+    ans = {}
+    for sid, scen in scenarios.items():
+        if not isinstance(scen, dict):
+            raise ValueError(
+                f"Scenario '{sid}' in model '{model_name}' must be a dictionary"
+            )
+        extra = set(scen.keys()) - _SCENARIO_KEYS
+        if extra:
+            raise ValueError(
+                f"Scenario '{sid}' in model '{model_name}' has unexpected keys "
+                f"{sorted(extra, key=str)}.  Valid keys are {sorted(_SCENARIO_KEYS)}."
+            )
+        data = scen.get("data", {})
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"The 'data' value of scenario '{sid}' in model '{model_name}' must be a dictionary"
+            )
+        ans[sid] = dict(scen)
+        ans[sid]["data"] = data
+    return ans
+
 
 class StochasticProgram(object):
     """
@@ -48,7 +117,7 @@ class StochasticProgram(object):
         self.app_data: dict[str, Any] = {}
         # model_data[model_name] -> data
         self.model_data: dict[str, Any] = {}
-        # scenario_data[model_name][scenario_name] -> data
+        # scenario_data[model_name][scenario_name] -> {"data": ..., "probability": ...}
         self.scenario_data: dict[str, dict[str, Any]] = {}
 
         # The name of the default model used to evaluate

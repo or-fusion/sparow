@@ -42,23 +42,20 @@ if GlobalData.num_scens < 3:
 # ==== BASIC FARMERS SCENARIO DATA =============================================
 
 Basic_scendata = {
-    "scenarios": [
-        {
-            "ID": "scen_0",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "Probability": 1.0 / 3.0,
-        },
-        {
-            "ID": "scen_1",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "Probability": 1.0 / 3.0,
-        },
-        {
-            "ID": "scen_2",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "Probability": 1.0 / 3.0,
-        },
-    ]
+    "scenarios": {
+        "scen_0": dict(
+            data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
+            probability=1.0 / 3.0,
+        ),
+        "scen_1": dict(
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
+            probability=1.0 / 3.0,
+        ),
+        "scen_2": dict(
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
+            probability=1.0 / 3.0,
+        ),
+    }
 }
 
 # ==== ADVANCED FARMERS SCENARIO DATA ==========================================
@@ -86,9 +83,9 @@ class AdvancedScenario_dict(object):
         """
         Final output is a dictionary with a single key-value pair.
         The key is "scenarios"
-        The value is a list, called scen_dict_list. It contains one dictionary per possible
-        population scenario. Each scenario's dictionary must contain "ID", set of yields, and
-        "Probability".
+        The value is a dictionary that maps scenario IDs to scenario specifications,
+        with one entry per possible population scenario. Each scenario specification
+        contains "data" (the set of yields) and "probability".
         """
         total_scens = (
             self.num_data_points**3
@@ -96,25 +93,24 @@ class AdvancedScenario_dict(object):
         scen_prob = 1.0 / total_scens  # each scenario vector gets equal probability
 
         scen_id = 0  # naming convention: each scenario ID string ends in a number (population index)
-        scen_dict_list = []
+        scen_dict = {}
 
         for w in self.wheat_support:
             for c in self.corn_support:
                 for s in self.sugar_support:
-                    scen_dict_list.append(
-                        {
-                            "ID": f"scen_{scen_id}",
+                    scen_dict[f"scen_{scen_id}"] = dict(
+                        data={
                             "Yield": {
                                 "WHEAT": float(w),
                                 "CORN": float(c),
                                 "SUGAR_BEETS": float(s),
-                            },
-                            "Probability": scen_prob,
-                        }
+                            }
+                        },
+                        probability=scen_prob,
                     )
                     scen_id += 1
 
-        return {"scenarios": scen_dict_list}
+        return {"scenarios": scen_dict}
 
 
 AdvancedScen_object = AdvancedScenario_dict(GlobalData.num_data_points)
@@ -402,7 +398,7 @@ def main():
     )
     args = parser.parse_args()
 
-    # For writing the scenario file, we only need the finite scenario list.
+    # For writing the scenario file, we only need the finite scenario population.
     model = get_sp_model_for_uq(
         model_name="Advanced",
         use_integer=False,

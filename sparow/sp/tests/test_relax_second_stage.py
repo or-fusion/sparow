@@ -20,7 +20,7 @@ def sp0():
 
     sp = stochastic_program(first_stage_variables=["x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1)]))
+    sp.initialize_model(model_data=dict(scenarios={1: {}}))
     return sp
 
 
@@ -37,7 +37,7 @@ def sp1():
 
     sp = stochastic_program(first_stage_variables=["x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1)]))
+    sp.initialize_model(model_data=dict(scenarios={1: {}}))
     return sp
 
 
@@ -54,10 +54,10 @@ def sp2():
     sp.initialize_model(model_builder=builder)
     sp.initialize_model(
         model_data={
-            "scenarios": [
-                {"ID": 1},
-                {"ID": 2},
-            ]
+            "scenarios": {
+                1: {},
+                2: {},
+            }
         }
     )
     return sp
@@ -77,10 +77,10 @@ def sp3():
     sp.initialize_model(model_builder=builder)
     sp.initialize_model(
         model_data={
-            "scenarios": [
-                {"ID": 1},
-                {"ID": 2},
-            ]
+            "scenarios": {
+                1: {},
+                2: {},
+            }
         }
     )
     sp.initialize_bundles(scheme="single_bundle")

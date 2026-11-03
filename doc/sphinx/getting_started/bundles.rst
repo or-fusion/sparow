@@ -216,7 +216,8 @@ You can create your own bundling schemes:
        Parameters
        ----------
        data : dict
-           Model and scenario data
+           Scenario data: data[model][scenario_id] is a dictionary of the
+           form {"data": {...}, "probability": p}
        models : list
            List of model names
        bundle_args : dict
@@ -238,7 +239,7 @@ You can create your own bundling schemes:
        high_demand = []
 
        for scen_id, scen_data in scenarios.items():
-           if scen_data['d'] < 50:
+           if scen_data['data']['d'] < 50:
                low_demand.append(scen_id)
            else:
                high_demand.append(scen_id)
@@ -247,13 +248,13 @@ You can create your own bundling schemes:
        if low_demand:
            bundles['low_demand'] = {
                'scenarios': {s: 1.0/len(low_demand) for s in low_demand},
-               'Probability': sum(scenarios[s]['Probability'] for s in low_demand)
+               'Probability': sum(scenarios[s]['probability'] for s in low_demand)
            }
 
        if high_demand:
            bundles['high_demand'] = {
                'scenarios': {s: 1.0/len(high_demand) for s in high_demand},
-               'Probability': sum(scenarios[s]['Probability'] for s in high_demand)
+               'Probability': sum(scenarios[s]['probability'] for s in high_demand)
            }
 
        # Normalize bundle probabilities
@@ -291,8 +292,7 @@ Most bundling schemes accept additional arguments through `bundle_args`:
        models=["model1"],
        bundle_args={
            'num_clusters': 8,
-           'dkey': 'Demand',  # Specify data key for clustering
-           'pkey': 'Probability'  # Specify probability key
+           'data_key': 'Demand',  # Specify scenario data key for clustering
        }
    )
 
@@ -306,8 +306,10 @@ Most bundling schemes accept additional arguments through `bundle_args`:
 Common Bundle Arguments:
 - `num_clusters`: Number of clusters for k-means
 - `bun_size`: Bundle size for random bundling
-- `dkey`: Data key to use for clustering
-- `pkey`: Probability key in scenario data
+- `data_key`: Scenario data key to use for clustering
+
+Scenario probabilities are always taken from the `"probability"` key of each
+scenario.
 - `bundles`: List of bundles for custom bundling
 
 Practical Bundling Examples
@@ -326,13 +328,13 @@ Newsvendor Problem
 
    # Demand scenarios
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15, "Probability": 0.1},
-           {"ID": 2, "d": 60, "Probability": 0.6},
-           {"ID": 3, "d": 72, "Probability": 0.2},
-           {"ID": 4, "d": 78, "Probability": 0.05},
-           {"ID": 5, "d": 82, "Probability": 0.05},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 15}, "probability": 0.1},
+           2: {"data": {"d": 60}, "probability": 0.6},
+           3: {"data": {"d": 72}, "probability": 0.2},
+           4: {"data": {"d": 78}, "probability": 0.05},
+           5: {"data": {"d": 82}, "probability": 0.05},
+       },
    }
 
    # Create stochastic program
@@ -360,7 +362,7 @@ Facility Location Problem
        # Group by region
        regions = {}
        for scen_id, scen_data in scenarios.items():
-           region = scen_data['region']
+           region = scen_data['data']['region']
            if region not in regions:
                regions[region] = []
            regions[region].append(scen_id)
@@ -370,7 +372,7 @@ Facility Location Problem
        for region, scens in regions.items():
            bundles[f'region_{region}'] = {
                'scenarios': {s: 1.0/len(scens) for s in scens},
-               'Probability': sum(scenarios[s]['Probability'] for s in scens)
+               'Probability': sum(scenarios[s]['probability'] for s in scens)
            }
 
        # Normalize

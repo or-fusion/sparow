@@ -70,43 +70,47 @@ HF_scenarios = random.choices(
     list(sdict.keys()), k=app_data.get("num_HF", 8)
 )  # randomly select HF scenarios from sdict
 
-LFscens_list = []  # list of LF scenarios
+LFscens = {}  # dictionary of LF scenarios
 for lscen_idx, lscen in enumerate(LF_scenarios):
     scen = demand_levels[lscen_idx]
-    LFscens_list.append(
-        {
-            "ID": f"{scen}",
+    LFscens[f"{scen}"] = dict(
+        data={
             "Demand": [
                 customer_demand[key][demand_value_mapping[scen]]
                 for key in customer_demand.keys()
-            ],
-            "Probability": demand_prob_mapping[scen],
-        }
+            ]
+        },
+        probability=demand_prob_mapping[scen],
     )
 
-HFscens_list = []  # list of HF scenarios
+HFscens_list = []  # list of (ID, scenario) tuples for HF scenarios
 customer_demand_vals = list(customer_demand.values())
 for hscen in HF_scenarios:
     HFscens_list.append(
-        {
-            "ID": f"{hscen}",
-            "Demand": [
-                customer_demand_vals[customer][demand_value_mapping[hscen[customer]]]
-                for customer in range(len(hscen))
-            ],
-            "Probability": sdict[scenario]["Probability"],
-        }
+        (
+            f"{hscen}",
+            dict(
+                data={
+                    "Demand": [
+                        customer_demand_vals[customer][
+                            demand_value_mapping[hscen[customer]]
+                        ]
+                        for customer in range(len(hscen))
+                    ]
+                },
+                probability=sdict[scenario]["Probability"],
+            ),
+        )
     )
 
 # normalize HF scenario probabilities
-HF_norm_term = sum(
-    HFscens_list[s_idx]["Probability"] for s_idx in range(len(HFscens_list))
-)
-for s_idx in range(len(HFscens_list)):
-    HFscens_list[s_idx]["Probability"] /= HF_norm_term
+HF_norm_term = sum(hscen["probability"] for _, hscen in HFscens_list)
+for _, hscen in HFscens_list:
+    hscen["probability"] /= HF_norm_term
+HFscens = dict(HFscens_list)  # dictionary of HF scenarios
 
 
-model_data = {"LF": {"scenarios": LFscens_list}, "HF": {"scenarios": HFscens_list}}
+model_data = {"LF": {"scenarios": LFscens}, "HF": {"scenarios": HFscens}}
 
 
 def LF_builder(data, args):

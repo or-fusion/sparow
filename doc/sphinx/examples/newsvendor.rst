@@ -59,18 +59,18 @@ Model data defines the scenario-specific information:
 .. code-block:: python
 
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15},
-           {"ID": 2, "d": 60},
-           {"ID": 3, "d": 72},
-           {"ID": 4, "d": 78},
-           {"ID": 5, "d": 82},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 15}},
+           2: {"data": {"d": 60}},
+           3: {"data": {"d": 72}},
+           4: {"data": {"d": 78}},
+           5: {"data": {"d": 82}},
+       },
    }
 
 Each scenario represents a different demand realization:
-- `ID`: Unique scenario identifier
-- `d`: Demand value for that scenario
+- The dictionary key (e.g. `1`) is the unique scenario identifier
+- `d`: Demand value for that scenario, specified in the scenario's `"data"` dictionary
 
 Step 3: Builder Function
 -------------------------
@@ -177,13 +177,13 @@ Here's the complete newsvendor example showing all steps:
 
    # Step 2: Model data
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15},
-           {"ID": 2, "d": 60},
-           {"ID": 3, "d": 72},
-           {"ID": 4, "d": 78},
-           {"ID": 5, "d": 82},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 15}},
+           2: {"data": {"d": 60}},
+           3: {"data": {"d": 72}},
+           4: {"data": {"d": 78}},
+           5: {"data": {"d": 82}},
+       },
    }
 
    # Step 3: Builder function
@@ -344,11 +344,11 @@ You can create custom variations by modifying the data:
 
    # Custom scenarios
    custom_model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 10, "probability": 0.1},
-           {"ID": 2, "d": 50, "probability": 0.6},
-           {"ID": 3, "d": 100, "probability": 0.3},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 10}, "probability": 0.1},
+           2: {"data": {"d": 50}, "probability": 0.6},
+           3: {"data": {"d": 100}, "probability": 0.3},
+       },
    }
 
    # Create custom stochastic program

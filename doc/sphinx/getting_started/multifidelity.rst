@@ -39,12 +39,12 @@ Multifidelity data has a nested structure with separate models:
 
    mf_data = {
        "HF": {  # High-fidelity model
-           "scen_1": {"Demand": 3, "Probability": 0.4},
-           "scen_0": {"Demand": 1, "Probability": 0.6},
+           "scen_1": {"data": {"Demand": 3}, "probability": 0.4},
+           "scen_0": {"data": {"Demand": 1}, "probability": 0.6},
        },
        "LF": {  # Low-fidelity model
-           "scen_3": {"Demand": 4, "Probability": 0.2},
-           "scen_2": {"Demand": 2, "Probability": 0.8},
+           "scen_3": {"data": {"Demand": 4}, "probability": 0.2},
+           "scen_2": {"data": {"Demand": 2}, "probability": 0.8},
        }
    }
 
@@ -260,18 +260,18 @@ Newsvendor Problem
 
    # High-fidelity model with detailed scenarios
    hf_data = {
-       "scenarios": [
-           {"ID": f"hf_{i}", "d": d, "Probability": 0.1}
+       "scenarios": {
+           f"hf_{i}": {"data": {"d": d}, "probability": 0.1}
            for i, d in enumerate([15, 60, 72, 78, 82, 65, 55, 90])
-       ],
+       },
    }
 
    # Low-fidelity model with aggregated scenarios
    lf_data = {
-       "scenarios": [
-           {"ID": f"lf_{i}", "d": d, "Probability": 0.25}
+       "scenarios": {
+           f"lf_{i}": {"data": {"d": d}, "probability": 0.25}
            for i, d in enumerate([30, 50, 70, 90])
-       ],
+       },
    }
 
    # Create multifidelity stochastic program
@@ -298,18 +298,18 @@ Facility Location Problem
 
    # HF model: Detailed customer demand scenarios
    hf_data = {
-       "scenarios": [
-           {"ID": f"hf_{i}", "demands": detailed_demands[i], "Probability": probs[i]}
+       "scenarios": {
+           f"hf_{i}": {"data": {"demands": detailed_demands[i]}, "probability": probs[i]}
            for i in range(100)
-       ],
+       },
    }
 
    # LF model: Aggregated demand regions
    lf_data = {
-       "scenarios": [
-           {"ID": f"lf_{i}", "demands": aggregated_demands[i], "Probability": probs[i]}
+       "scenarios": {
+           f"lf_{i}": {"data": {"demands": aggregated_demands[i]}, "probability": probs[i]}
            for i in range(10)
-       ],
+       },
    }
 
    # Create multifidelity program

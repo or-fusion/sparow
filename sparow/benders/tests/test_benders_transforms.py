@@ -171,9 +171,9 @@ class TestBendersTransforms:
         solver.set_options(solver=solver, subproblem_solver=solver)
 
         model_data = {
-            "scenarios": [
-                {"ID": 1, "LB": None, "UB": None},
-            ],
+            "scenarios": {
+                1: dict(data={"LB": None, "UB": None}),
+            },
         }
         c_values = [1, 2]
         removal_options = [True, False]
@@ -361,9 +361,11 @@ class TestBendersTransforms:
         solver.set_options(solver=solver, subproblem_solver=solver)
         constant_offset = 10
         model_data = {
-            "scenarios": [
-                {"ID": 1, "LB": None, "UB": None, "constant_offset": constant_offset},
-            ],
+            "scenarios": {
+                1: dict(
+                    data={"LB": None, "UB": None, "constant_offset": constant_offset}
+                ),
+            },
         }
         c_vals = [0, 1, -3, 4]
         for c in c_vals:
@@ -467,9 +469,11 @@ class TestBendersTransforms:
         solver.set_options(solver=solver, subproblem_solver=solver)
         constant_offset = 10
         model_data = {
-            "scenarios": [
-                {"ID": 1, "LB": None, "UB": None, "constant_offset": constant_offset},
-            ],
+            "scenarios": {
+                1: dict(
+                    data={"LB": None, "UB": None, "constant_offset": constant_offset}
+                ),
+            },
         }
         f_options = [True, False]
         for fix_second_stage_vars in f_options:

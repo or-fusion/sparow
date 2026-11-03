@@ -24,7 +24,7 @@ All Sparow formulations follow this pattern:
    app_data = {...}
 
    # 2. Define model data (scenarios)
-   model_data = {"scenarios": [...]}
+   model_data = {"scenarios": {...}}
 
    # 3. Define builder function
    def builder(data, args):
@@ -73,26 +73,28 @@ Model data defines scenario-specific information:
 
    # Newsvendor example: model data
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15},
-           {"ID": 2, "d": 60},
+       "scenarios": {
+           1: {"data": {"d": 15}},
+           2: {"data": {"d": 60}},
            # ... more scenarios
-       ],
+       },
    }
 
    # General pattern:
    model_data = {
-       "scenarios": [
-           {"ID": 1, "param1": value1, "param2": value2, ...},
-           {"ID": 2, "param1": value3, "param2": value4, ...},
+       "scenarios": {
+           1: {"data": {"param1": value1, "param2": value2, ...}},
+           2: {"data": {"param1": value3, "param2": value4, ...}},
            # ... more scenarios
-       ],
+       },
    }
 
 **Characteristics:**
-- Each scenario has a unique `ID`
-- Contains parameters that vary by scenario
+- `"scenarios"` is a dictionary whose keys are unique scenario IDs
+- The `"data"` dictionary of each scenario contains parameters that vary by scenario
 - Typically includes demands, prices, yields, etc.
+- An optional top-level `"data"` dictionary contains model-level parameters
+  that are shared by all scenarios of the model
 
 **Scenario Probabilities:**
 
@@ -101,11 +103,11 @@ You can specify probabilities for each scenario:
 .. code-block:: python
 
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15, "probability": 0.1},
-           {"ID": 2, "d": 60, "probability": 0.6},
-           {"ID": 3, "d": 100, "probability": 0.3},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 15}, "probability": 0.1},
+           2: {"data": {"d": 60}, "probability": 0.6},
+           3: {"data": {"d": 100}, "probability": 0.3},
+       },
    }
 
 If probabilities are not specified, scenarios are assumed to be equally likely.
@@ -158,8 +160,10 @@ The builder function creates a Pyomo model for a single scenario:
 
 The `data` dictionary contains:
 - All keys from `app_data`
-- All keys from the specific scenario
-- Special key `"ID"` with the scenario ID
+- All keys from the model-level `"data"` dictionary (if specified)
+- All keys from the `"data"` dictionary of the specific scenario
+- Special key `"ID"` with the scenario ID (i.e., the key of the scenario in
+  the `"scenarios"` dictionary)
 
 This allows the builder to access both constant and scenario-specific parameters.
 
@@ -252,13 +256,13 @@ Here's a complete formulation using the newsvendor problem:
 
    # Step 2: Model data (scenarios)
    model_data = {
-       "scenarios": [
-           {"ID": 1, "d": 15},
-           {"ID": 2, "d": 60},
-           {"ID": 3, "d": 72},
-           {"ID": 4, "d": 78},
-           {"ID": 5, "d": 82},
-       ],
+       "scenarios": {
+           1: {"data": {"d": 15}},
+           2: {"data": {"d": 60}},
+           3: {"data": {"d": 72}},
+           4: {"data": {"d": 78}},
+           5: {"data": {"d": 82}},
+       },
    }
 
    # Step 3: Builder function

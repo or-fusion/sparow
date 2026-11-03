@@ -8,23 +8,23 @@ from sparow.sp import stochastic_program
 app_data = dict(c=1.0, b=1.5, h=0.1)
 model_data = {
     "LF": {
-        "scenarios": [
-            {"ID": "1", "d": 15, "Probability": 0.1},
-            {"ID": "2", "d": 60, "Probability": 0.2},
-            {"ID": "3", "d": 72, "Probability": 0.1},
-            {"ID": "4", "d": 78, "Probability": 0.3},
-            {"ID": "5", "d": 82, "Probability": 0.3},
-        ]
+        "scenarios": {
+            "1": dict(data={"d": 15}, probability=0.1),
+            "2": dict(data={"d": 60}, probability=0.2),
+            "3": dict(data={"d": 72}, probability=0.1),
+            "4": dict(data={"d": 78}, probability=0.3),
+            "5": dict(data={"d": 82}, probability=0.3),
+        }
     },
     "HF": {
         "data": {"B": 0.9},
-        "scenarios": [
-            {"ID": "1", "d": 15, "C": 1.4, "Probability": 0.05},
-            {"ID": "2", "d": 60, "C": 1.3, "Probability": 0.4},
-            {"ID": "3", "d": 72, "C": 1.2, "Probability": 0.1},
-            {"ID": "4", "d": 78, "C": 1.1, "Probability": 0.35},
-            {"ID": "5", "d": 82, "C": 1.0, "Probability": 0.1},
-        ],
+        "scenarios": {
+            "1": dict(data={"d": 15, "C": 1.4}, probability=0.05),
+            "2": dict(data={"d": 60, "C": 1.3}, probability=0.4),
+            "3": dict(data={"d": 72, "C": 1.2}, probability=0.1),
+            "4": dict(data={"d": 78, "C": 1.1}, probability=0.35),
+            "5": dict(data={"d": 82, "C": 1.0}, probability=0.1),
+        },
     },
 }
 

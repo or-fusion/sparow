@@ -199,14 +199,14 @@ def test_without_replacement_sampling(advanced_model):
     )
 
     sampled = sampler.draw_scenarios(n=600, replication_id=0)
-    pop_indices = [s["Population_Index"] for s in sampled]
+    pop_indices = [s["Population_Index"] for s in sampled.values()]
 
     assert len(pop_indices) == len(set(pop_indices))
 
 
 def test_with_replacement_sampling(advanced_model):
     """
-    With replacement, all sampled scenarios should still get Probability = 1/n,
+    With replacement, all sampled scenarios should still get probability = 1/n,
     and duplicates are allowed.
     """
     n = 600
@@ -219,8 +219,9 @@ def test_with_replacement_sampling(advanced_model):
     sampled = sampler.draw_scenarios(n=n, replication_id=0)
 
     # Every sampled scenario should have probability 1/n
-    for s in sampled:
-        assert math.isclose(s["Probability"], 1.0 / n)
+    assert len(sampled) == n
+    for s in sampled.values():
+        assert math.isclose(s["probability"], 1.0 / n)
 
     # We do not require duplicates to appear, only that duplicates are allowed.
     # So the main assertion is that no error occurs and probabilities are correct.
@@ -241,13 +242,15 @@ def test_nested_sample_correctness(advanced_model):
     rep_id = 0
     sampled_superset = sampler.draw_scenarios(n=600, replication_id=rep_id)
 
-    sampled_500 = sampled_superset[:500]
-    sampled_400 = sampled_superset[:400]
+    sampled_500 = dict(list(sampled_superset.items())[:500])
+    sampled_400 = dict(list(sampled_superset.items())[:400])
 
     # Compare population indices to ensure nesting is exact
-    superset_indices = [s["Population_Index"] for s in sampled_superset]
-    sample_500_indices = [s["Population_Index"] for s in sampled_500]
-    sample_400_indices = [s["Population_Index"] for s in sampled_400]
+    superset_indices = [
+        s["Population_Index"] for s in sampled_superset.values()
+    ]
+    sample_500_indices = [s["Population_Index"] for s in sampled_500.values()]
+    sample_400_indices = [s["Population_Index"] for s in sampled_400.values()]
 
     assert sample_500_indices == superset_indices[:500]
     assert sample_400_indices == superset_indices[:400]
@@ -262,21 +265,29 @@ def test_nested_sample_correctness(advanced_model):
     "bad_scenarios, expected_msg",
     [
         (
-            [{"ID": "scen_0", "Probability": 1.0}],
-            "is missing required key",
+            {"scen_0": {"data": {}, "probability": 1.0}},
+            "is missing required data key",
         ),  # missing Yield
         (
-            [{"Yield": {"WHEAT": 2.0}, "Probability": 1.0}],
+            {"scen_1": {"probability": 1.0}},
             "is missing required key",
-        ),  # missing ID
+        ),  # missing data
         (
-            [{"ID": "scen_2", "Yield": {"WHEAT": 2.0}}],
+            {"scen_2": {"data": {"Yield": {"WHEAT": 2.0}}}},
             "is missing required key",
-        ),  # missing Probability
+        ),  # missing probability
         (
-            [[{"ID": "scen_0", "Probability": 1.0, "Yield": {"WHEAT": 2.0}}]],
+            {"scen_0": [{"data": {"Yield": {"WHEAT": 2.0}}, "probability": 1.0}]},
             "is not a dictionary",
-        ),  # not a dictionary
+        ),  # scenario is not a dictionary
+        (
+            {"scen_0": {"data": [{"Yield": {"WHEAT": 2.0}}], "probability": 1.0}},
+            "is not a dictionary",
+        ),  # scenario data is not a dictionary
+        (
+            [{"ID": "scen_0", "Probability": 1.0, "Yield": {"WHEAT": 2.0}}],
+            "must be a dictionary",
+        ),  # old list-of-scenarios format
     ],
 )
 def test_scenario_format_validation(advanced_model, bad_scenarios, expected_msg):
@@ -611,3 +622,26 @@ def test_acvmrp_variance_reduction_compares_estimator_variances(facilityloc_ense
     expected_factor = 1.0 / (1.0 - (rho_hat**2) * M / (m + M))
 
     assert results["variance_reduction_factor"] == pytest.approx(expected_factor)
+
+
+def test_sampled_scenario_metadata(advanced_model):
+    """
+    Sampled scenarios record 'Original_ID' and 'Population_Index' in the
+    scenario dictionary (not in its 'data'), and build_model_data() removes
+    this metadata before the batch is passed to SPAROW.
+    """
+    population = advanced_model.scenario_population().scenarios()
+    population_ids = list(sorted(population.keys()))
+    sampled = advanced_model.scenario_sampler().draw_scenarios(n=5, replication_id=0)
+
+    for scen in sampled.values():
+        assert scen["Original_ID"] == population_ids[scen["Population_Index"]]
+        assert "Original_ID" not in scen["data"]
+        assert "Population_Index" not in scen["data"]
+        assert scen["data"] == population[scen["Original_ID"]]["data"]
+
+    model_data = advanced_model.build_model_data(sampled)
+    assert list(model_data["scenarios"].keys()) == list(sampled.keys())
+    for sid, scen in model_data["scenarios"].items():
+        assert set(scen.keys()) == {"data", "probability"}
+        assert scen["probability"] == sampled[sid]["probability"]

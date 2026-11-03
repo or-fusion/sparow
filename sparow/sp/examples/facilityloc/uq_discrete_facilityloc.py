@@ -96,28 +96,25 @@ class FacilityLocationScenarioData(object):
         """
         Final output is a dictionary with a single key-value pair.
         The key is "scenarios"
-        The value is a list, called scen_dict_list. It contains one dictionary per possible
-        population scenario. Each scenario's dictionary must contain "ID", demands, and
-        "Probability".
+        The value is a dictionary that maps scenario IDs to scenario specifications,
+        with one entry per possible population scenario. Each scenario specification
+        contains "data" (the demands) and "probability".
         """
         total_scens = self.num_data_points ** len(self.demand_supports)
         scen_prob = 1.0 / total_scens  # each scenario vector gets equal probability
 
         scen_id = 0  # naming convention: each scenario ID string ends in a number (population index)
-        scen_dict_list = []
+        scen_dict = {}
 
         # Use itertools.product to get cartesian product
         for demand_tuple in itertools.product(*self.demand_supports):
-            scen_dict_list.append(
-                {
-                    "ID": f"scen_{scen_id}",
-                    "Demand": [float(d) for d in demand_tuple],
-                    "Probability": scen_prob,
-                }
+            scen_dict[f"scen_{scen_id}"] = dict(
+                data={"Demand": [float(d) for d in demand_tuple]},
+                probability=scen_prob,
             )
             scen_id += 1
 
-        return {"scenarios": scen_dict_list}
+        return {"scenarios": scen_dict}
 
 
 HFScenarioObject = FacilityLocationScenarioData(num_data_points=5)
@@ -330,7 +327,7 @@ def get_sp_model_for_uq(
     else:
         raise ValueError(f"Unknown facility location model_name: {model_name}")
 
-    # The scenario population object stores the finite list of scenarios and
+    # The scenario population object stores the finite set of scenarios and
     # validates their native SPAROW formatting.
     scenario_population = FiniteScenarioPopulation(
         scenarios=scenario_data["scenarios"],

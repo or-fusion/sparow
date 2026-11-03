@@ -185,26 +185,29 @@ def model_builder(scen, scen_args):
 # FarmerSP.initialize_model(model_builder=model_builder)
 
 model_data = {
-    "scenarios": [
-        {
-            "ID": "BelowAverageScenario",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "crops_multiplier": 1.0,
-            "Probability": 0.3333333333333333,
-        },
-        {
-            "ID": "AverageScenario",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "crops_multiplier": 1.0,
-            "Probability": 0.3333333333333333,
-        },
-        {
-            "ID": "AboveAverageScenario",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "crops_multiplier": 1.0,
-            "Probability": 0.3333333333333333,
-        },
-    ]
+    "scenarios": {
+        "BelowAverageScenario": dict(
+            data={
+                "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
+                "crops_multiplier": 1.0,
+            },
+            probability=0.3333333333333333,
+        ),
+        "AverageScenario": dict(
+            data={
+                "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
+                "crops_multiplier": 1.0,
+            },
+            probability=0.3333333333333333,
+        ),
+        "AboveAverageScenario": dict(
+            data={
+                "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
+                "crops_multiplier": 1.0,
+            },
+            probability=0.3333333333333333,
+        ),
+    }
 }
 
 
