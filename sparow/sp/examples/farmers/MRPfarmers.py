@@ -356,9 +356,7 @@ def get_sp_model_for_uq(
     # data and first-stage variables.  Scenarios are supplied by the sampler.
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
     sp.initialize_application(app_data=local_app_data)
-    sp.initialize_model(
-        name=model_name, model_builder=model_builder
-    )
+    sp.initialize_model(name=model_name, model_builder=model_builder)
 
     model = SPModelWrapperforUQ(
         sp=sp,
