@@ -133,7 +133,7 @@ def _bundle_scheme(data, scheme_str, models, model_weight=None, bundle_args=None
     for key in bundle:
         if abs(sum(bundle[key]["scenarios"].values()) - 1.0) > 1e-04:
             raise RuntimeError(
-                f"Scenario probabilities within bundle {key} do not sum to 1 (sum={sum(bundle[key]["scenarios"].values())} num={len(bundle[key]["scenarios"].values())})"
+                f"Scenario probabilities within bundle {key} do not sum to 1 (sum={sum(bundle[key]['scenarios'].values())} num={len(bundle[key]['scenarios'].values())})"
             )
 
     return bundle
