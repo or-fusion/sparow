@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 import or_topas
+
 with or_topas.util.try_import() as pyapprox_available:
     import pyapprox
 
@@ -246,9 +247,7 @@ def test_nested_sample_correctness(advanced_model):
     sampled_400 = dict(list(sampled_superset.items())[:400])
 
     # Compare population indices to ensure nesting is exact
-    superset_indices = [
-        s["Population_Index"] for s in sampled_superset.values()
-    ]
+    superset_indices = [s["Population_Index"] for s in sampled_superset.values()]
     sample_500_indices = [s["Population_Index"] for s in sampled_500.values()]
     sample_400_indices = [s["Population_Index"] for s in sampled_400.values()]
 
