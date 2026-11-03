@@ -5,6 +5,7 @@ import random
 import numpy as np
 from pathlib import Path
 
+from sparow.sp import stochastic_program
 from sparow.conf_intervals.scenario_population import FiniteScenarioPopulation
 from sparow.conf_intervals.scenario_sampler import ScenarioSampler
 from sparow.conf_intervals.sp_model_wrapper_for_uq import SPModelWrapperforUQ
@@ -343,18 +344,19 @@ def get_sp_model_for_uq(
         with_replacement=with_replacement,
     )
 
-    first_stage_vars = ["x"]
-    first_stage_order = [f"x[{i}]" for i in range(app_data["n"])]
+    # The stochastic program defines the model name, builder, application
+    # data and first-stage variables.  Scenarios are supplied by the sampler.
+    sp = stochastic_program(first_stage_variables=["x"])
+    sp.initialize_application(app_data=app_data)
+    sp.initialize_model(
+        name=model_name, model_builder=model_builder
+    )
 
     model = SPModelWrapperforUQ(
-        name=model_name,
-        fidelity=fidelity,
+        sp=sp,
         scenario_population=scenario_population,
         scenario_sampler=scenario_sampler,
-        model_builder=model_builder,
-        app_data=app_data,
-        first_stage_variables=first_stage_vars,
-        first_stage_variable_order=first_stage_order,
+        fidelity=fidelity,
     )
 
     if not isinstance(model, StochasticProgramModelProtocol):
