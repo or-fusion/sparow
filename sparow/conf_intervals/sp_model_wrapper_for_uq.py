@@ -303,8 +303,9 @@ class SPModelWrapperforUQ:
         sp = self._build_stochastic_program(model_data)
         results = solver.solve(sp)
 
-        self._first_stage_variable_order = \
-            list(sorted(sp.get_variable_name(i) for i, _ in enumerate(sp.get_variables())))
+        self._first_stage_variable_order = list(
+            sorted(sp.get_variable_name(i) for i, _ in enumerate(sp.get_variables()))
+        )
 
         return results.to_dict()
 
