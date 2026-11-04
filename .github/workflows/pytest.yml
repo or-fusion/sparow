@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - name: Install formatting tools
         run: |
@@ -57,8 +57,8 @@ jobs:
     strategy:
       fail-fast: false  # If one job fails, the rest will still run
       matrix:
-        os: [ubuntu-latest] # Omitting macos-latest because it is 10x more expensive
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        os: [ubuntu-latest] # Omitting macos-latest because it is more expensive
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -74,7 +74,7 @@ jobs:
             ~/conda_pkgs_dir
             ~/.conda
             ~/miniconda3/envs
-          key: conda-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('dev_environment.yml') }}
+          key: conda-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('dev_environment.yml', '*/dev_environment.yml') }}
           restore-keys: |
             conda-${{ matrix.os }}-${{ matrix.python-version }}-
             conda-${{ matrix.os }}-
@@ -86,14 +86,14 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           channels: conda-forge,defaults
-          activate-environment: sparow
+          activate-environment: sparow_dev
           environment-file: dev_environment.yml
           use-mamba: true
 
       - name: Checkout or-topas
         uses: actions/checkout@v4
         with:
-          repository: sandialabs/or_topas
+          repository: or-fusion/or_topas
           path: './or_topas'
 
       - name: Install or-topas
@@ -136,14 +136,14 @@ jobs:
           auto-update-conda: true
           python-version: 3.13
           channels: conda-forge,defaults
-          activate-environment: sparow
+          activate-environment: sparow_dev
           environment-file: dev_environment.yml
           use-mamba: true
 
       - name: Checkout or-topas
         uses: actions/checkout@v4
         with:
-          repository: sandialabs/or_topas
+          repository: or_fusion/or_topas
           path: './or_topas'
 
       - name: Install or-topas
@@ -155,7 +155,7 @@ jobs:
         run: pip install -e .
 
       - name: Test with pytest & coverage
-        run: pytest --cov --cov-branch --cov-report=xml --junitxml=junit.xml -vv
+        run: pytest --cov --cov-branch --cov-report=xml --junitxml=junit.xml -vv sparow
 
       - name: Upload test results to Codecov
         uses: codecov/codecov-action@v4
