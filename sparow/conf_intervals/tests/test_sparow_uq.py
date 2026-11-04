@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 import or_topas
+
 with or_topas.util.try_import() as pyapprox_available:
     import pyapprox
 
