@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false  # If one job fails, the rest will still run
       matrix:
-        os: [ubuntu-latest] # Omitting macos-latest because it is more expensive
+        os: [ubuntu-latest] # Omitting macos-latest because it is expensive
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     runs-on: ${{ matrix.os }}
     defaults:
@@ -105,10 +105,11 @@ jobs:
         run: pip install -e .
 
       - name: Test with pytest
-        run: pytest -v
+        run: |
+            pytest -r s -vv sparow
 
   coverage:
-    needs: format-check
+    needs: tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -155,7 +156,7 @@ jobs:
         run: pip install -e .
 
       - name: Test with pytest & coverage
-        run: pytest --cov --cov-branch --cov-report=xml --junitxml=junit.xml -vv sparow
+        run: pytest -r s --cov --cov-branch --cov-report=xml --junitxml=junit.xml -vv sparow
 
       - name: Upload test results to Codecov
         uses: codecov/codecov-action@v4
