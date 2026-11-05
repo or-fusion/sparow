@@ -14,7 +14,7 @@ def sp0():
 
     sp = stochastic_program(first_stage_variables=["x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1)]))
+    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}]))
     return sp
 
 
@@ -29,7 +29,7 @@ def sp1():
 
     sp = stochastic_program(first_stage_variables=["x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1), dict(ID=2)]))
+    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}, {"ID": 2}]))
     return sp
 
 
@@ -44,7 +44,7 @@ def sp2():
 
     sp = stochastic_program(first_stage_variables=["y", "x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1), dict(ID=2)]))
+    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}, {"ID": 2}]))
     return sp
 
 
@@ -60,7 +60,7 @@ def sp3():
 
     sp = stochastic_program(first_stage_variables=["b.y", "x"])
     sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[dict(ID=1), dict(ID=2)]))
+    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}, {"ID": 2}]))
     return sp
 
 
@@ -172,3 +172,96 @@ class TestSP(object):
         assert getattr(M, "non_ant_cons", None) == None
         assert len(M.s) == 2
         assert len(M.first_stage_variables) == 2
+
+
+class TestScenarioFormat(object):
+
+    def test_scenario_data_and_probability(self):
+        received = {}
+
+        def builder(data, args):
+            received[data["ID"]] = dict(data)
+            M = pyo.ConcreteModel()
+            M.x = pyo.Var()
+            M.o = pyo.Objective(expr=data["d"] * M.x)
+            return M
+
+        sp = stochastic_program(first_stage_variables=["x"])
+        sp.initialize_application(app_data={"c": 1})
+        sp.initialize_model(
+            model_data={
+                "data": {"m": 2},
+                "scenarios": [
+                    {"ID": "a", "data": {"d": 3}, "probability": 0.25},
+                    {"ID": "b", "data": {"d": 4}, "probability": 0.75},
+                ],
+            },
+            model_builder=builder,
+        )
+        probs = {b: sp.bundles[b].probability for b in sp.bundles.keys()}
+        assert probs == {"a": pytest.approx(0.25), "b": pytest.approx(0.75)}
+
+        sp.create_EF()
+        assert received == {
+            "a": {"c": 1, "m": 2, "d": 3, "ID": "a"},
+            "b": {"c": 1, "m": 2, "d": 4, "ID": "b"},
+        }
+
+    def test_scenario_without_data(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        sp.initialize_model(model_data={"scenarios": [{"ID": 1, "probability": 1.0}]})
+        assert sp.scenario_data[None] == {1: {"data": {}, "probability": 1.0}}
+
+    def test_dict_of_scenarios_is_an_error(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(TypeError, match="must be specified with a list"):
+            sp.initialize_model(model_data={"scenarios": {1: {"data": {"d": 15}}}})
+
+    def test_scenario_order_is_preserved(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        sp.initialize_model(
+            model_data={"scenarios": [{"ID": "b"}, {"ID": "a"}, {"ID": "c"}]}
+        )
+        assert list(sp.scenario_data[None].keys()) == ["b", "a", "c"]
+
+    def test_missing_ID_is_an_error(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(ValueError, match="missing the required 'ID' key"):
+            sp.initialize_model(model_data={"scenarios": [{"data": {"d": 15}}]})
+
+    def test_duplicate_ID_is_an_error(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(ValueError, match="Duplicate scenario ID '1'"):
+            sp.initialize_model(model_data={"scenarios": [{"ID": 1}, {"ID": 1}]})
+
+    def test_scenario_must_be_a_dict(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(ValueError, match="Scenario 0 .* must be a dictionary"):
+            sp.initialize_model(model_data={"scenarios": [1]})
+
+    def test_unexpected_scenario_key_is_an_error(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(ValueError, match="unexpected keys"):
+            sp.initialize_model(
+                model_data={"scenarios": [{"ID": 1, "d": 15, "Probability": 0.1}]}
+            )
+
+    def test_scenario_data_must_be_a_dict(self):
+        sp = stochastic_program(first_stage_variables=["x"])
+        with pytest.raises(ValueError, match="'data' value .* must be a dictionary"):
+            sp.initialize_model(model_data={"scenarios": [{"ID": 1, "data": 15}]})
+
+    def test_ID_is_reserved(self):
+        def builder(data, args):
+            M = pyo.ConcreteModel()
+            M.x = pyo.Var()
+            M.o = pyo.Objective(expr=M.x)
+            return M
+
+        sp = stochastic_program(first_stage_variables=["x"])
+        sp.initialize_model(
+            model_data={"scenarios": [{"ID": 1, "data": {"ID": 2}}]},
+            model_builder=builder,
+        )
+        with pytest.raises(AssertionError, match="reserved"):
+            sp.create_EF()

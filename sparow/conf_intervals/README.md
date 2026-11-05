@@ -30,6 +30,25 @@ In practice:
 - `StandardMRP` expects one `StochasticProgramModelProtocol` object.
 - `ACVMRP` expects one `ModelEnsembleProtocol` object containing a high-fidelity and a low-fidelity model wrapper.
 
+## Scenario population format
+
+Scenario populations (`FiniteScenarioPopulation`) use the native SPAROW scenario format: a list of scenario specifications with `"ID"`, `"data"` and `"probability"` keys:
+
+```python
+from sparow.conf_intervals.scenario_population import FiniteScenarioPopulation
+
+population = FiniteScenarioPopulation(
+    scenarios=[
+        {"ID": "scen_0", "data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
+        {"ID": "scen_1", "data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
+    ],
+    required_scenario_keys=["Demand"],  # keys required in each scenario's "data"
+    scenario_vector_keys=["Demand"],    # "data" keys encoded as scenario vectors
+)
+```
+
+Sampled scenario batches use the same format. A batch drawn for replication `r` has scenario IDs `rep<r>_scen<i>`, each with probability `1/n`. Each sampled scenario also has `"Original_ID"` and `"Population_Index"` keys, which identify the population scenario it was drawn from. These metadata keys are removed by `build_model_data()` before the batch is passed to SPAROW.
+
 ## Minimal usage: Standard MRP
 
 ```python

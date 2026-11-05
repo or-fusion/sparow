@@ -23,18 +23,16 @@ class ScenarioSampler:
     The protocol is the single accepted interface for accessing and validating
     the underlying finite scenario set.
 
-    The actual draws are made from the list of scenario dictionaries returned by
-    scenario_population.scenarios().
-
-    The internal representation of the scenario population as a list of dictionaries
-    is done for compatibility with existing SPAROW code.
+    The actual draws are made from the list of scenarios returned by
+    scenario_population.scenarios().  Scenarios are drawn by their position
+    in this list.
 
     Example usage for drawing a batch of scenarios for a single replication:
     -------------
 
     scenarios = [
-        {"ID": "s0", "Probability": 0.5, "Demand": [1.0, 2.0]},
-        {"ID": "s1", "Probability": 0.5, "Demand": [3.0, 4.0]},
+        {"ID": "s0", "data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
+        {"ID": "s1", "data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
     ]
     pop = FiniteScenarioPopulation(
         scenarios=scenarios,
@@ -47,9 +45,9 @@ class ScenarioSampler:
 
     Output:
     [
-        {'ID': 'rep0_scen0', 'Probability': 0.333, 'Demand': [1.0, 2.0], 'Original_ID': 's0', 'Population_Index': 0},
-        {'ID': 'rep0_scen1', 'Probability': 0.333, 'Demand': [3.0, 4.0], 'Original_ID': 's1', 'Population_Index': 1},
-        {'ID': 'rep0_scen2', 'Probability': 0.333, 'Demand': [3.0, 4.0], 'Original_ID': 's1', 'Population_Index': 1}
+        {'ID': 'rep0_scen0', 'data': {'Demand': [1.0, 2.0]}, 'probability': 0.333, 'Original_ID': 's0', 'Population_Index': 0},
+        {'ID': 'rep0_scen1', 'data': {'Demand': [3.0, 4.0]}, 'probability': 0.333, 'Original_ID': 's1', 'Population_Index': 1},
+        {'ID': 'rep0_scen2', 'data': {'Demand': [3.0, 4.0]}, 'probability': 0.333, 'Original_ID': 's1', 'Population_Index': 1},
     ]
     """
 
@@ -70,6 +68,7 @@ class ScenarioSampler:
 
         # The protocol object is responsible for validation of the stored scenarios.
         self._scenario_population.validate()
+        # Scenarios are drawn by their position in the population
         self._scenarios = self._scenario_population.scenarios()
 
         if len(self._scenarios) == 0:
@@ -85,7 +84,7 @@ class ScenarioSampler:
 
     def scenarios(self) -> List[Dict[str, Any]]:
         """
-        Return the underlying list of scenario dictionaries used for sampling.
+        Return the underlying list of scenarios used for sampling.
         """
         return self._scenarios
 
@@ -117,7 +116,11 @@ class ScenarioSampler:
         Returns
         -------
         list of dict
-            Sampled scenario dictionaries in native SPAROW format
+            Sampled scenarios in native SPAROW format, i.e. a list of
+            scenario specifications.  The sampled scenario IDs are
+            'rep<replication_id>_scen<i>', and each scenario
+            is augmented with 'Original_ID' and 'Population_Index' keys to
+            record where it came from.
 
         Notes
         -----
@@ -145,18 +148,17 @@ class ScenarioSampler:
 
         sampled = []
         for local_id, population_idx in enumerate(indices):
-
             # Copy the sampled scenario so replication-specific fields do not
             # overwrite the stored population scenario.
             scen = copy.deepcopy(self._scenarios[int(population_idx)])
 
             # Keep track of where this scenario came from in the population.
-            scen["Original_ID"] = scen.get("ID", str(population_idx))
+            scen["Original_ID"] = scen["ID"]
             scen["Population_Index"] = int(population_idx)
 
-            # Required fields for the sampled scenario dictionary in native SPAROW format.
+            # Sampled scenarios are equally weighted
             scen["ID"] = f"rep{replication_id}_scen{local_id}"
-            scen["Probability"] = 1.0 / n
+            scen["probability"] = 1.0 / n
 
             sampled.append(scen)
 
@@ -170,7 +172,7 @@ class ScenarioBatchPrior:
     One PyApprox sample corresponds to one batch of scenarios.
     This is one replication in the MRP or ACV-MRP sense.
 
-    Internally, the prior draws from the list of scenario dictionaries returned
+    Internally, the prior draws from the list of scenarios returned
     by scenario_population.scenarios().
 
     If the batch size is n and each scenario vector has
@@ -202,6 +204,7 @@ class ScenarioBatchPrior:
 
         # Validate the stored finite scenario set once up front.
         self._scenario_population.validate()
+        # Scenarios are drawn by their position in the population
         self._scenarios = self._scenario_population.scenarios()
 
         # Dimension of one encoded scenario vector.
@@ -258,7 +261,7 @@ class ScenarioBatchPrior:
                 replace=with_replacement_flag,
             )
 
-            # Encode each sampled scenario dictionary into a flat numeric vector.
+            # Encode each sampled scenario into a flat numeric vector.
             batch_vectors = [
                 self._scenario_population.encode_scenario_vector(self._scenarios[ii])
                 for ii in indices_of_selected_scens

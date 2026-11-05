@@ -37,7 +37,9 @@ def mf_bundle_from_list(data, models=None, model_weight=None, bundle_args=None):
     pkey = bf.check_data_dict_keys(data, model0, bundle_args)[1]
 
     if pkey is None:
-        raise RuntimeError(f"Specify probability_key in bundle_args")
+        raise RuntimeError(
+            f"Scenario probabilities must be specified with the 'probability' key"
+        )
 
     bundle = {}
     for bundle_list_idx, bundle_list in enumerate(list_of_bundles):
@@ -81,7 +83,9 @@ def mf_kmeans_similar(data, models=None, model_weight=None, bundle_args=None):
     pkey = bf.check_data_dict_keys(data, model0, bundle_args, dkey_required=True)[1]
 
     if pkey is None:
-        raise RuntimeError(f"Specify probability_key in bundle_args")
+        raise RuntimeError(
+            f"Scenario probabilities must be specified with the 'probability' key"
+        )
 
     if bundle_args is not None:  # default bundle size is 2
         bun_size = bundle_args.get("bun_size", 2)
@@ -103,13 +107,18 @@ def mf_kmeans_similar(data, models=None, model_weight=None, bundle_args=None):
         sname: sval for model in models[1:] for (sname, sval) in data[model].items()
     }
 
-    if isinstance(data[model0][next(iter(all_scens))][dkey], numbers.Number) == True:
-        arr = np.array([data[model0][skey][dkey] for skey in data[model0].keys()])
+    if (
+        isinstance(data[model0][next(iter(all_scens))]["data"][dkey], numbers.Number)
+        == True
+    ):
+        arr = np.array(
+            [data[model0][skey]["data"][dkey] for skey in data[model0].keys()]
+        )
         X = arr.reshape(
             -1, 1
         )  # array of scenario demands needs to be reshaped if demand is 1-dimensional
     else:
-        X = np.array([data[model0][skey][dkey] for skey in data[model0].keys()])
+        X = np.array([data[model0][skey]["data"][dkey] for skey in data[model0].keys()])
     # only HF scenarios are used to determine bundle centers
     kmeans = KMeans(n_clusters=num_centers, random_state=0, n_init="auto").fit(
         X
@@ -119,13 +128,13 @@ def mf_kmeans_similar(data, models=None, model_weight=None, bundle_args=None):
     diffs = {}
     for hs in hf_scens:  # map scenarios to closest bundle center
         dem_diffs = [
-            float(np.linalg.norm(centers[i] - hf_scens[hs][dkey]))
+            float(np.linalg.norm(centers[i] - hf_scens[hs]["data"][dkey]))
             for i in range(len(centers))
         ]
         diffs[hs] = dem_diffs.index(min(dem_diffs))
     for ls in lf_scens:  # map LF scenarios to closest bundle center
         dem_diffs = [
-            float(np.linalg.norm(centers[i] - lf_scens[ls][dkey]))
+            float(np.linalg.norm(centers[i] - lf_scens[ls]["data"][dkey]))
             for i in range(len(centers))
         ]
         diffs[ls] = dem_diffs.index(min(dem_diffs))
@@ -215,7 +224,9 @@ def mf_kmeans_dissimilar(data, models=None, model_weight=None, bundle_args=None)
     pkey = bf.check_data_dict_keys(data, model0, bundle_args, dkey_required=True)[1]
 
     if pkey is None:
-        raise RuntimeError(f"Specify probability_key in bundle_args")
+        raise RuntimeError(
+            f"Scenario probabilities must be specified with the 'probability' key"
+        )
 
     if bundle_args is not None:  # default bundle size is 2
         bun_size = bundle_args.get("bun_size", 2)
@@ -237,13 +248,18 @@ def mf_kmeans_dissimilar(data, models=None, model_weight=None, bundle_args=None)
         sname: sval for model in models[1:] for (sname, sval) in data[model].items()
     }
 
-    if isinstance(data[model0][next(iter(all_scens))][dkey], numbers.Number) == True:
-        arr = np.array([data[model0][skey][dkey] for skey in data[model0].keys()])
+    if (
+        isinstance(data[model0][next(iter(all_scens))]["data"][dkey], numbers.Number)
+        == True
+    ):
+        arr = np.array(
+            [data[model0][skey]["data"][dkey] for skey in data[model0].keys()]
+        )
         X = arr.reshape(
             -1, 1
         )  # array of scenario demands needs to be reshaped if demand is 1-dimensional
     else:
-        X = np.array([data[model0][skey][dkey] for skey in data[model0].keys()])
+        X = np.array([data[model0][skey]["data"][dkey] for skey in data[model0].keys()])
     # only HF scenarios are used to determine bundle centers
     kmeans = KMeans(n_clusters=num_centers, random_state=0, n_init="auto").fit(
         X
@@ -253,13 +269,13 @@ def mf_kmeans_dissimilar(data, models=None, model_weight=None, bundle_args=None)
     diffs = {}
     for hs in hf_scens:  # map HF scenarios to closest bundle center
         dem_diffs = [
-            float(np.linalg.norm(centers[i] - hf_scens[hs][dkey]))
+            float(np.linalg.norm(centers[i] - hf_scens[hs]["data"][dkey]))
             for i in range(len(centers))
         ]
         diffs[hs] = dem_diffs.index(min(dem_diffs))
     for ls in lf_scens:  # map LF scenarios to furthest bundle center
         dem_diffs = [
-            float(np.linalg.norm(centers[i] - lf_scens[ls][dkey]))
+            float(np.linalg.norm(centers[i] - lf_scens[ls]["data"][dkey]))
             for i in range(len(centers))
         ]
         diffs[ls] = dem_diffs.index(max(dem_diffs))
@@ -351,7 +367,9 @@ def mf_similar_partitions(data, models=None, model_weight=None, bundle_args=None
     pkey = bf.check_data_dict_keys(data, model0, bundle_args)[1]
 
     if pkey is None:
-        raise RuntimeError(f"Specify probability_key in bundle_args")
+        raise RuntimeError(
+            f"Scenario probabilities must be specified with the 'probability' key"
+        )
 
     HFscenarios = list(data[model0].keys())  # list of HF scenario names
     LFscenarios = {}  # all other models are LF
@@ -448,7 +466,9 @@ def mf_dissimilar_partitions(data, models=None, model_weight=None, bundle_args=N
     pkey = bf.check_data_dict_keys(data, model0, bundle_args)[1]
 
     if pkey is None:
-        raise RuntimeError(f"Specify probability_key in bundle_args")
+        raise RuntimeError(
+            f"Scenario probabilities must be specified with the 'probability' key"
+        )
 
     HFscenarios = list(data[model0].keys())
     LFscenarios = {}  # all other models are LF

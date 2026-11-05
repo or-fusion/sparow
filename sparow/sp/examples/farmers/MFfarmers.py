@@ -23,21 +23,21 @@ if GlobalData.num_scens < 3:
 #
 LF_scendata = {
     "scenarios": [
-        {
-            "ID": "scen_0",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "Probability": 0.3,
-        },
-        {
-            "ID": "scen_1",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "Probability": 0.3,
-        },
-        {
-            "ID": "scen_2",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "Probability": 0.4,
-        },
+        dict(
+            ID="scen_0",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
+            probability=0.3,
+        ),
+        dict(
+            ID="scen_1",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
+            probability=0.3,
+        ),
+        dict(
+            ID="scen_2",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
+            probability=0.4,
+        ),
     ]
 }
 
@@ -46,141 +46,141 @@ LF_scendata = {
 #
 HF_scendata = {
     "scenarios": [
-        {
-            "ID": "BBB",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "VVV",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "AAA",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "Probability": 0.064,
-        },
-        {
-            "ID": "BBV",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 20.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "BBA",
-            "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 24.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "BVB",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 16.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "BAB",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 16.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "VBB",
-            "Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "ABB",
-            "Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "BVV",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "AVV",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "VBV",
-            "Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 20.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "VAV",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 20.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "VVB",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 16.0},
-            "Probability": 0.027,
-        },
-        {
-            "ID": "VVA",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 24.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "AAB",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 16.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "AAV",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 20.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "ABA",
-            "Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 24.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "AVA",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 24.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "BAA",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "VAA",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-            "Probability": 0.048,
-        },
-        {
-            "ID": "BVA",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 24.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "BAV",
-            "Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 20.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "VBA",
-            "Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 24.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "VAB",
-            "Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 16.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "AVB",
-            "Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 16.0},
-            "Probability": 0.036,
-        },
-        {
-            "ID": "ABV",
-            "Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 20.0},
-            "Probability": 0.036,
-        },
+        dict(
+            ID="BBB",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="VVV",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="AAA",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
+            probability=0.064,
+        ),
+        dict(
+            ID="BBV",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 20.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="BBA",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 24.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="BVB",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 16.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="BAB",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 16.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="VBB",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="ABB",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="BVV",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="AVV",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="VBV",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 20.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="VAV",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 20.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="VVB",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 16.0}},
+            probability=0.027,
+        ),
+        dict(
+            ID="VVA",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 24.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="AAB",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 16.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="AAV",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 20.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="ABA",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 24.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="AVA",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 24.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="BAA",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="VAA",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
+            probability=0.048,
+        ),
+        dict(
+            ID="BVA",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.0, "SUGAR_BEETS": 24.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="BAV",
+            data={"Yield": {"WHEAT": 2.0, "CORN": 3.6, "SUGAR_BEETS": 20.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="VBA",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 2.4, "SUGAR_BEETS": 24.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="VAB",
+            data={"Yield": {"WHEAT": 2.5, "CORN": 3.6, "SUGAR_BEETS": 16.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="AVB",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 3.0, "SUGAR_BEETS": 16.0}},
+            probability=0.036,
+        ),
+        dict(
+            ID="ABV",
+            data={"Yield": {"WHEAT": 3.0, "CORN": 2.4, "SUGAR_BEETS": 20.0}},
+            probability=0.036,
+        ),
     ]
 }
 
@@ -194,50 +194,35 @@ class LFScenario_dict(object):
         self.LF_scendata = LF_scendata
 
     def scenario_generator(self):
-        self.scen_dict_list = []
-        self.scen_dict = {"scenarios": self.scen_dict_list}
-
         """
-        creating a dictionary with a single key, "scenarios", 
-        with entry "scen_dict_list" which is a list that contains the scenario info. 
-            each entry of the list contains an ID corresponding to the scenario, the list of 
-            items from LF_scendata contained in the scenario, and the probability
+        Create a dictionary with a single key, "scenarios", which maps
+        to a list of scenario specifications.  The data for each scenario
+        contains "list_IDs", which is the list of per-plot scenarios from
+        HF_scendata contained in the scenario.
         """
-        for s in range(3):
-            self.scen_dict_list.append(
-                {"ID": f"scen_{s}", "list_IDs": [], "Probability": None}
-            )
-
         ### always samples the three original (LF) scenarios:
-        self.scen_dict_list[0]["list_IDs"].append(
-            {
-                "ID": "BBB",
-                "Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0},
-                "Probability": 0.027,
-            }
-        )
-        self.scen_dict_list[0]["Probability"] = 0.027
-        self.scen_dict_list[1]["list_IDs"].append(
-            {
-                "ID": "VVV",
-                "Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0},
-                "Probability": 0.027,
-            }
-        )
-        self.scen_dict_list[1]["Probability"] = 0.027
-        self.scen_dict_list[2]["list_IDs"].append(
-            {
-                "ID": "AAA",
-                "Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0},
-                "Probability": 0.064,
-            }
-        )
-        self.scen_dict_list[2]["Probability"] = 0.064
+        HF_plot_scenarios = {scen["ID"]: scen for scen in HF_scendata["scenarios"]}
+        plot_scenarios = [
+            HF_plot_scenarios["BBB"],
+            HF_plot_scenarios["VVV"],
+            HF_plot_scenarios["AAA"],
+        ]
+        self.scen_dict = {
+            "scenarios": [
+                dict(
+                    ID=f"scen_{s}",
+                    data={"list_IDs": [plot_scen]},
+                    probability=plot_scen["probability"],
+                )
+                for s, plot_scen in enumerate(plot_scenarios)
+            ]
+        }
 
         ### normalize scenario probabilities
-        norm_factor = sum(self.scen_dict_list[s]["Probability"] for s in range(3))
-        for s in range(3):
-            self.scen_dict_list[s]["Probability"] /= norm_factor
+        scenarios = self.scen_dict["scenarios"]
+        norm_factor = sum(scen["probability"] for scen in scenarios)
+        for scen in scenarios:
+            scen["probability"] /= norm_factor
 
         return self.scen_dict
 
@@ -248,60 +233,44 @@ class HFScenario_dict(object):
         self.HF_scendata = HF_scendata
 
     def scenario_generator(self, num_plots, num_scens):
-        self.scen_dict_list = []
-        self.scen_dict = {"scenarios": self.scen_dict_list}
+        """
+        Create a dictionary with a single key, "scenarios", which maps
+        to a list of scenario specifications.  The data for each scenario
+        contains "list_IDs", which is the list of per-plot scenarios from
+        HF_scendata contained in the scenario.
+        """
+        plot_scenarios = list(self.HF_scendata["scenarios"])
 
-        """
-        creating a dictionary with a single key, "scenarios", 
-        with entry "scen_dict_list" which is a list that contains the scenario info. 
-            each entry of the list contains an ID corresponding to the scenario, the list of 
-            items from HF_scendata contained in the scenario, and the probability
-        """
-        for s in range(num_scens):
-            self.scen_dict_list.append(
-                {"ID": f"scen_{s}", "list_IDs": [], "Probability": None}
-            )
+        def scen_prob(list_IDs):
+            return math.prod(plot_scen["probability"] for plot_scen in list_IDs)
 
         ### the scenarios are randomly sampled:
-        for s in range(num_scens):
-            self.scen_dict_list[s]["list_IDs"].extend(
-                random.choices(self.HF_scendata["scenarios"], k=num_plots)
-            )
-            scen_probs = []
-            for k in range(num_plots):
-                scen_probs.append(self.scen_dict_list[s]["list_IDs"][k]["Probability"])
-            self.scen_dict_list[s]["Probability"] = math.prod(scen_probs)
+        scen_list_IDs = [
+            random.choices(plot_scenarios, k=num_plots) for s in range(num_scens)
+        ]
 
         ### remove redundant scenarios (not the most elegant solution... but pretty sure it works):
         for u in range(num_scens):
             for s in range(u, num_scens):
-                if (
-                    self.scen_dict_list[s]["list_IDs"]
-                    == self.scen_dict_list[u]["list_IDs"]
-                ):
-                    redundant_scen = self.scen_dict_list[s]["list_IDs"]
-                    self.scen_dict_list[s]["list_IDs"] = []
-                    new_scen = random.choices(
-                        self.HF_scendata["scenarios"], k=num_plots
-                    )
+                if scen_list_IDs[s] == scen_list_IDs[u]:
+                    redundant_scen = scen_list_IDs[s]
+                    new_scen = random.choices(plot_scenarios, k=num_plots)
                     while new_scen == redundant_scen:
-                        new_scen = random.choices(
-                            self.HF_scendata["scenarios"], k=num_plots
-                        )
-                    self.scen_dict_list[s]["list_IDs"].extend(new_scen)
-                    scen_probs = []
-                    for k in range(num_plots):
-                        scen_probs.append(
-                            self.scen_dict_list[s]["list_IDs"][k]["Probability"]
-                        )
-                    self.scen_dict_list[s]["Probability"] = math.prod(scen_probs)
+                        new_scen = random.choices(plot_scenarios, k=num_plots)
+                    scen_list_IDs[s] = new_scen
 
         ### normalize scenario probabilities
-        norm_factor = sum(
-            self.scen_dict_list[s]["Probability"] for s in range(num_scens)
-        )
-        for s in range(num_scens):
-            self.scen_dict_list[s]["Probability"] /= norm_factor
+        norm_factor = sum(scen_prob(list_IDs) for list_IDs in scen_list_IDs)
+        self.scen_dict = {
+            "scenarios": [
+                dict(
+                    ID=f"scen_{s}",
+                    data={"list_IDs": list_IDs},
+                    probability=scen_prob(list_IDs) / norm_factor,
+                )
+                for s, list_IDs in enumerate(scen_list_IDs)
+            ]
+        }
 
         return self.scen_dict
 
@@ -534,7 +503,7 @@ def model_builder(data, args):
     ### STOCHASTIC DATA
     def Yield_init(m, cropname, plot):  ### per-plot crop yields
         crop_base_name = cropname.rstrip("0123456789")
-        return data["list_IDs"][plot]["Yield"][crop_base_name]
+        return data["list_IDs"][plot]["data"]["Yield"][crop_base_name]
 
     model.Yield = pyo.Param(
         model.CROPS,
