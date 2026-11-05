@@ -42,20 +42,23 @@ if GlobalData.num_scens < 3:
 # ==== BASIC FARMERS SCENARIO DATA =============================================
 
 Basic_scendata = {
-    "scenarios": {
-        "scen_0": dict(
+    "scenarios": [
+        dict(
+            ID="scen_0",
             data={"Yield": {"WHEAT": 2.0, "CORN": 2.4, "SUGAR_BEETS": 16.0}},
             probability=1.0 / 3.0,
         ),
-        "scen_1": dict(
+        dict(
+            ID="scen_1",
             data={"Yield": {"WHEAT": 2.5, "CORN": 3.0, "SUGAR_BEETS": 20.0}},
             probability=1.0 / 3.0,
         ),
-        "scen_2": dict(
+        dict(
+            ID="scen_2",
             data={"Yield": {"WHEAT": 3.0, "CORN": 3.6, "SUGAR_BEETS": 24.0}},
             probability=1.0 / 3.0,
         ),
-    }
+    ]
 }
 
 # ==== ADVANCED FARMERS SCENARIO DATA ==========================================
@@ -83,9 +86,9 @@ class AdvancedScenario_dict(object):
         """
         Final output is a dictionary with a single key-value pair.
         The key is "scenarios"
-        The value is a dictionary that maps scenario IDs to scenario specifications,
-        with one entry per possible population scenario. Each scenario specification
-        contains "data" (the set of yields) and "probability".
+        The value is a list of scenario specifications, with one entry per
+        possible population scenario. Each scenario specification contains
+        "ID", "data" (the set of yields) and "probability".
         """
         total_scens = (
             self.num_data_points**3
@@ -93,24 +96,27 @@ class AdvancedScenario_dict(object):
         scen_prob = 1.0 / total_scens  # each scenario vector gets equal probability
 
         scen_id = 0  # naming convention: each scenario ID string ends in a number (population index)
-        scen_dict = {}
+        scen_list = []
 
         for w in self.wheat_support:
             for c in self.corn_support:
                 for s in self.sugar_support:
-                    scen_dict[f"scen_{scen_id}"] = dict(
-                        data={
-                            "Yield": {
-                                "WHEAT": float(w),
-                                "CORN": float(c),
-                                "SUGAR_BEETS": float(s),
-                            }
-                        },
-                        probability=scen_prob,
+                    scen_list.append(
+                        dict(
+                            ID=f"scen_{scen_id}",
+                            data={
+                                "Yield": {
+                                    "WHEAT": float(w),
+                                    "CORN": float(c),
+                                    "SUGAR_BEETS": float(s),
+                                }
+                            },
+                            probability=scen_prob,
+                        )
                     )
                     scen_id += 1
 
-        return {"scenarios": scen_dict}
+        return {"scenarios": scen_list}
 
 
 AdvancedScen_object = AdvancedScenario_dict(GlobalData.num_data_points)

@@ -113,7 +113,7 @@ class ACVMRP:
                     "F_nk": hf_result["gap_estimate"],
                     "G_nk": lf_result["gap_estimate"],
                     "sampled_indices": [
-                        s["Population_Index"] for s in sampled_scenarios.values()
+                        s["Population_Index"] for s in sampled_scenarios
                     ],
                     "scenarios": sampled_scenarios,
                 }
@@ -154,7 +154,7 @@ class ACVMRP:
                 {
                     "G_nk": lf_result["gap_estimate"],
                     "sampled_indices": [
-                        s["Population_Index"] for s in sampled_scenarios.values()
+                        s["Population_Index"] for s in sampled_scenarios
                     ],
                     "scenarios": sampled_scenarios,
                 }

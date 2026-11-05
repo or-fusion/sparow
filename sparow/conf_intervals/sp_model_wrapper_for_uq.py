@@ -11,7 +11,6 @@ runtime isinstance(..., ProtocolClass) checks can verify compatibility,
 
 from __future__ import annotations
 
-import itertools
 from typing import Any, Dict, List, Optional
 
 from sparow.ef import ExtensiveFormSolver
@@ -188,8 +187,8 @@ class SPModelWrapperforUQ:
         n: int,
         replication_id: int,
         nested_sampling: bool = False,
-        precomputed_supersets: Optional[Dict[int, Dict[Any, Dict[str, Any]]]] = None,
-    ) -> Dict[Any, Dict[str, Any]]:
+        precomputed_supersets: Optional[Dict[int, List[Dict[str, Any]]]] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Draw one scenario batch of scenarios for a replication. If not using a
         precomputed superset, internally calls to self._scenario_sampler.draw_scenarios
@@ -206,13 +205,13 @@ class SPModelWrapperforUQ:
             This is useful for numerical experiments where we vary/ increment
             batch size n and want to keep the same underlying superset of scenarios for comparability.
         precomputed_supersets : dict, optional
-            Mapping from replication id to a precomputed dictionary of scenarios.
+            Mapping from replication id to a precomputed list of scenarios.
 
         Returns
         -------
-        dict
+        list of dict
             Native SPAROW representation for a scenario batch, i.e. a
-            dictionary that maps scenario IDs to scenario specifications.
+            list of scenario specifications.
         """
         if nested_sampling:
 
@@ -228,9 +227,7 @@ class SPModelWrapperforUQ:
             # Nested sampling keeps the same underlying superset and takes
             # its first n scenarios.... so results are comparable across
             # different values.
-            sampled_scenarios = dict(
-                itertools.islice(precomputed_supersets[replication_id].items(), n)
-            )
+            sampled_scenarios = precomputed_supersets[replication_id][:n]
 
         else:
             sampled_scenarios = self._scenario_sampler.draw_scenarios(
@@ -243,7 +240,7 @@ class SPModelWrapperforUQ:
         return sampled_scenarios
 
     def build_model_data(
-        self, sampled_scenarios: Dict[Any, Dict[str, Any]]
+        self, sampled_scenarios: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
         Build the model_data dictionary expected by SPAROW.
@@ -253,11 +250,11 @@ class SPModelWrapperforUQ:
         Model-level data from the stochastic program used to construct
         this wrapper is included under the 'data' key.
         """
-        scenarios = {
-            sid: {k: v for k, v in scen.items() if k in ("data", "probability")}
-            for sid, scen in sampled_scenarios.items()
-        }
-        return {"data": dict(self._model_level_data), "scenarios": scenarios}
+        scenarios = [
+            {k: v for k, v in scen.items() if k in ("ID", "data", "probability")}
+            for scen in sampled_scenarios
+        ]
+        return {"data": {}, "scenarios": scenarios}
 
     # ------------------------------------------------------------------
     # Solver / evaluation helpers
@@ -406,7 +403,7 @@ class SPModelWrapperforUQ:
 
     def solve_saa(
         self,
-        sampled_scenarios: Dict[Any, Dict[str, Any]],
+        sampled_scenarios: List[Dict[str, Any]],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
@@ -426,7 +423,7 @@ class SPModelWrapperforUQ:
     def evaluate_xhat(
         self,
         xhat: Dict[str, float],
-        sampled_scenarios: Dict[Any, Dict[str, Any]],
+        sampled_scenarios: List[Dict[str, Any]],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> float:
@@ -444,7 +441,7 @@ class SPModelWrapperforUQ:
     def replication_gap(
         self,
         xhat: Dict[str, float],
-        sampled_scenarios: Dict[Any, Dict[str, Any]],
+        sampled_scenarios: List[Dict[str, Any]],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, float]:

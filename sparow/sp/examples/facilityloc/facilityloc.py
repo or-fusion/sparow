@@ -55,7 +55,7 @@ for scenario in all_scenarios:
             city: customer_demand[city][demand_value_mapping[demand]]
             for city, demand in scenario_dict.items()
         },
-        "Probability": math.prod(
+        "probability": math.prod(
             demand_prob_mapping[scenario_dict[city]] for city in scenario_dict.keys()
         ),
     }
@@ -70,44 +70,46 @@ HF_scenarios = random.choices(
     list(sdict.keys()), k=app_data.get("num_HF", 8)
 )  # randomly select HF scenarios from sdict
 
-LFscens = {}  # dictionary of LF scenarios
+LFscens = []  # list of LF scenarios
 for lscen_idx, lscen in enumerate(LF_scenarios):
     scen = demand_levels[lscen_idx]
-    LFscens[f"{scen}"] = dict(
-        data={
-            "Demand": [
-                customer_demand[key][demand_value_mapping[scen]]
-                for key in customer_demand.keys()
-            ]
-        },
-        probability=demand_prob_mapping[scen],
+    LFscens.append(
+        dict(
+            ID=f"{scen}",
+            data={
+                "Demand": [
+                    customer_demand[key][demand_value_mapping[scen]]
+                    for key in customer_demand.keys()
+                ]
+            },
+            probability=demand_prob_mapping[scen],
+        )
     )
 
-HFscens_list = []  # list of (ID, scenario) tuples for HF scenarios
+HFscens = []  # list of HF scenarios
 customer_demand_vals = list(customer_demand.values())
 for hscen in HF_scenarios:
-    HFscens_list.append(
-        (
-            f"{hscen}",
-            dict(
-                data={
-                    "Demand": [
-                        customer_demand_vals[customer][
-                            demand_value_mapping[hscen[customer]]
-                        ]
-                        for customer in range(len(hscen))
+    HFscens.append(
+        dict(
+            ID=f"{hscen}",
+            data={
+                "Demand": [
+                    customer_demand_vals[customer][
+                        demand_value_mapping[hscen[customer]]
                     ]
-                },
-                probability=sdict[scenario]["Probability"],
-            ),
+                    for customer in range(len(hscen))
+                ]
+            },
+            probability=sdict[scenario]["probability"],
         )
     )
 
 # normalize HF scenario probabilities
-HF_norm_term = sum(hscen["probability"] for _, hscen in HFscens_list)
-for _, hscen in HFscens_list:
+HF_norm_term = sum(hscen["probability"] for hscen in HFscens)
+for hscen in HFscens:
     hscen["probability"] /= HF_norm_term
-HFscens = dict(HFscens_list)  # dictionary of HF scenarios
+# HF scenarios are sampled with replacement, so remove duplicate scenario IDs
+HFscens = list({hscen["ID"]: hscen for hscen in HFscens}.values())
 
 
 model_data = {"LF": {"scenarios": LFscens}, "HF": {"scenarios": HFscens}}

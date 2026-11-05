@@ -32,16 +32,16 @@ In practice:
 
 ## Scenario population format
 
-Scenario populations (`FiniteScenarioPopulation`) use the native SPAROW scenario format: a dictionary that maps scenario IDs to scenario specifications with `"data"` and `"probability"` keys:
+Scenario populations (`FiniteScenarioPopulation`) use the native SPAROW scenario format: a list of scenario specifications with `"ID"`, `"data"` and `"probability"` keys:
 
 ```python
 from sparow.conf_intervals.scenario_population import FiniteScenarioPopulation
 
 population = FiniteScenarioPopulation(
-    scenarios={
-        "scen_0": {"data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
-        "scen_1": {"data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
-    },
+    scenarios=[
+        {"ID": "scen_0", "data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
+        {"ID": "scen_1", "data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
+    ],
     required_scenario_keys=["Demand"],  # keys required in each scenario's "data"
     scenario_vector_keys=["Demand"],    # "data" keys encoded as scenario vectors
 )

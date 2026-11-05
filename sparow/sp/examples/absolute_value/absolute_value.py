@@ -7,23 +7,23 @@ from sparow.sp import stochastic_program
 #
 app_data = dict(a=0, c=0, L=1, R=1)
 model_data = {
-    "scenarios": {
-        1: dict(data={"LB": None, "UB": None}),
-    },
+    "scenarios": [
+        dict(ID=1, data={"LB": None, "UB": None}),
+    ],
 }
 
 modified_app_data_example = dict(a=3, c=0, L=1, R=1, LB=-5, UB=5)
 modified_model_data_example = {
-    "scenarios": {
-        1: dict(data={"LB": -5, "UB": 5}),
-    },
+    "scenarios": [
+        dict(ID=1, data={"LB": -5, "UB": 5}),
+    ],
 }
 
 modified_app_data = dict(a=3, c=0, L=1, R=1)
 modified_model_data = {
-    "scenarios": {
-        1: dict(data={"LB": -5, "UB": 5}),
-    },
+    "scenarios": [
+        dict(ID=1, data={"LB": -5, "UB": 5}),
+    ],
 }
 
 

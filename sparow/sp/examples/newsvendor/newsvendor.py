@@ -7,13 +7,13 @@ from sparow.sp import stochastic_program
 #
 app_data = dict(c=1.0, b=1.5, h=0.1)
 model_data = {
-    "scenarios": {
-        1: dict(data={"d": 15}),
-        2: dict(data={"d": 60}),
-        3: dict(data={"d": 72}),
-        4: dict(data={"d": 78}),
-        5: dict(data={"d": 82}),
-    },
+    "scenarios": [
+        dict(ID=1, data={"d": 15}),
+        dict(ID=2, data={"d": 60}),
+        dict(ID=3, data={"d": 72}),
+        dict(ID=4, data={"d": 78}),
+        dict(ID=5, data={"d": 82}),
+    ],
 }
 
 
@@ -80,9 +80,9 @@ def single_scenario_newsvendor():
     """
 
     local_model_data = {
-        "scenarios": {
-            1: dict(data={"d": 50}),
-        },
+        "scenarios": [
+            dict(ID=1, data={"d": 50}),
+        ],
     }
     sp = stochastic_program(first_stage_variables=["x"])
     sp.initialize_application(app_data=app_data)
