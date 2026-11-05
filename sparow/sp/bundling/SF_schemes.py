@@ -23,7 +23,7 @@ def single_scenario(data, models=None, bundle_args=None, *args):
 
     # model0 = models[0]
     # pkey = bf.check_data_dict_keys(data, model0, bundle_args)[1]
-    pkey = "Probability"
+    pkey = bf.PKEY
 
     if all(pkey in sdata for model in models for sdata in data[model].values()):
         #
@@ -195,13 +195,16 @@ def kmeans_similar(data, models=None, bundle_args=None):
         sname: sval for model in models for (sname, sval) in data[model].items()
     }
 
-    if isinstance(data[model0][next(iter(all_scens))][dkey], numbers.Number) == True:
-        arr = np.array([all_scens[s][dkey] for s in all_scens.keys()])
+    if (
+        isinstance(data[model0][next(iter(all_scens))]["data"][dkey], numbers.Number)
+        == True
+    ):
+        arr = np.array([all_scens[s]["data"][dkey] for s in all_scens.keys()])
         X = arr.reshape(
             -1, 1
         )  # array of scenario demands needs to be reshaped if demand is a number
     else:
-        X = np.array([all_scens[s][dkey] for s in all_scens.keys()])
+        X = np.array([all_scens[s]["data"][dkey] for s in all_scens.keys()])
 
     kmeans = KMeans(n_clusters=num_centers, random_state=0, n_init="auto").fit(
         X
@@ -277,13 +280,16 @@ def kmeans_dissimilar(data, models=None, bundle_args=None):
         sname: sval for model in models for (sname, sval) in data[model].items()
     }
 
-    if isinstance(data[model0][next(iter(all_scens))][dkey], numbers.Number) == True:
-        arr = np.array([all_scens[s][dkey] for s in all_scens.keys()])
+    if (
+        isinstance(data[model0][next(iter(all_scens))]["data"][dkey], numbers.Number)
+        == True
+    ):
+        arr = np.array([all_scens[s]["data"][dkey] for s in all_scens.keys()])
         X = arr.reshape(
             -1, 1
         )  # array of scenario demands needs to be reshaped if demand is a number
     else:
-        X = np.array([all_scens[s][dkey] for s in all_scens.keys()])
+        X = np.array([all_scens[s]["data"][dkey] for s in all_scens.keys()])
 
     kmeans = KMeans(n_clusters=num_centers, random_state=0, n_init="auto").fit(
         X
@@ -293,7 +299,7 @@ def kmeans_dissimilar(data, models=None, bundle_args=None):
     max_diffs = {}
     for s in all_scens:  # map scenarios to furthest bundle center
         diffs = [
-            float(np.linalg.norm(centers[i] - all_scens[s][dkey]))
+            float(np.linalg.norm(centers[i] - all_scens[s]["data"][dkey]))
             for i in range(len(centers))
         ]
         max_diffs[s] = diffs.index(max(diffs))

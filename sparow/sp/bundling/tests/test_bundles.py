@@ -27,12 +27,12 @@ from sparow.sp.bundling.bundling_functions import (
 def MF_data():
     return {
         "HF": {
-            "scen_1": {"Demand": 3, "Probability": 0.4},
-            "scen_0": {"Demand": 1, "Probability": 0.6},
+            "scen_1": {"data": {"Demand": 3}, "probability": 0.4},
+            "scen_0": {"data": {"Demand": 1}, "probability": 0.6},
         },
         "LF": {
-            "scen_3": {"Demand": 4, "Probability": 0.2},
-            "scen_2": {"Demand": 2, "Probability": 0.8},
+            "scen_3": {"data": {"Demand": 4}, "probability": 0.2},
+            "scen_2": {"data": {"Demand": 2}, "probability": 0.8},
         },
     }
 
@@ -41,16 +41,16 @@ def MF_data():
 def MFpaired_data():
     return {
         "HF": {
-            "scen_0": {"Demand": 3, "Probability": 0.2},
-            "scen_1": {"Demand": 1, "Probability": 0.2},
-            "scen_2": {"Demand": 2, "Probability": 0.3},
-            "scen_3": {"Demand": 4, "Probability": 0.3},
+            "scen_0": {"data": {"Demand": 3}, "probability": 0.2},
+            "scen_1": {"data": {"Demand": 1}, "probability": 0.2},
+            "scen_2": {"data": {"Demand": 2}, "probability": 0.3},
+            "scen_3": {"data": {"Demand": 4}, "probability": 0.3},
         },
         "LF": {
-            "scen_0": {"Demand": 4, "Probability": 0.2},
-            "scen_1": {"Demand": 2, "Probability": 0.3},
-            "scen_2": {"Demand": 1, "Probability": 0.3},
-            "scen_3": {"Demand": 3, "Probability": 0.2},
+            "scen_0": {"data": {"Demand": 4}, "probability": 0.2},
+            "scen_1": {"data": {"Demand": 2}, "probability": 0.3},
+            "scen_2": {"data": {"Demand": 1}, "probability": 0.3},
+            "scen_3": {"data": {"Demand": 3}, "probability": 0.2},
         },
     }
 
@@ -59,10 +59,10 @@ def MFpaired_data():
 def SF_data():
     return {
         "scen_data": {
-            "scen_1": {"Demand": 3, "Probability": 0.2},
-            "scen_0": {"Demand": 1, "Probability": 0.3},
-            "scen_3": {"Demand": 4, "Probability": 0.1},
-            "scen_2": {"Demand": 2, "Probability": 0.4},
+            "scen_1": {"data": {"Demand": 3}, "probability": 0.2},
+            "scen_0": {"data": {"Demand": 1}, "probability": 0.3},
+            "scen_3": {"data": {"Demand": 4}, "probability": 0.1},
+            "scen_2": {"data": {"Demand": 2}, "probability": 0.4},
         },
     }
 
@@ -71,10 +71,10 @@ def SF_data():
 def SF_missing_all_prob_data():
     return {
         "scen_data": {
-            "scen_1": {"Demand": 3},
-            "scen_0": {"Demand": 1},
-            "scen_3": {"Demand": 4},
-            "scen_2": {"Demand": 2},
+            "scen_1": {"data": {"Demand": 3}},
+            "scen_0": {"data": {"Demand": 1}},
+            "scen_3": {"data": {"Demand": 4}},
+            "scen_2": {"data": {"Demand": 2}},
         },
     }
 
@@ -83,10 +83,10 @@ def SF_missing_all_prob_data():
 def SF_missing_all_demand_data():
     return {
         "scen_data": {
-            "scen_1": {"pr": 0.2},
-            "scen_0": {"pr": 0.4},
-            "scen_3": {"pr": 0.3},
-            "scen_2": {"pr": 0.1},
+            "scen_1": {"data": {}, "probability": 0.2},
+            "scen_0": {"data": {}, "probability": 0.4},
+            "scen_3": {"data": {}, "probability": 0.3},
+            "scen_2": {"data": {}, "probability": 0.1},
         },
     }
 
@@ -95,8 +95,8 @@ def SF_missing_all_demand_data():
 def rand_data():
     return {
         "RD": {
-            "scen_0": {"Demand": 1, "Probability": 0.6},
-            "scen_2": {"Demand": 2, "Probability": 0.4},
+            "scen_0": {"data": {"Demand": 1}, "probability": 0.6},
+            "scen_2": {"data": {"Demand": 2}, "probability": 0.4},
         },
     }
 
@@ -104,8 +104,8 @@ def rand_data():
 @pytest.fixture
 def rand_data_MF():
     return {
-        "HF": {"scen_0": {"Demand": 1, "Probability": 1.0}},
-        "LF": {"scen_2": {"Demand": 2, "Probability": 1.0}},
+        "HF": {"scen_0": {"data": {"Demand": 1}, "probability": 1.0}},
+        "LF": {"scen_2": {"data": {"Demand": 2}, "probability": 1.0}},
     }
 
 
@@ -113,9 +113,9 @@ def rand_data_MF():
 def imbalanced_data():
     return {
         "SF": {
-            "rand_1": {"Demand": 3, "Probability": 0.5},
-            "rand_0": {"Demand": 1, "Probability": 0.3},
-            "rand_2": {"Demand": 4, "Probability": 0.2},
+            "rand_1": {"data": {"Demand": 3}, "probability": 0.5},
+            "rand_0": {"data": {"Demand": 1}, "probability": 0.3},
+            "rand_2": {"data": {"Demand": 4}, "probability": 0.2},
         },
     }
 
@@ -124,13 +124,13 @@ def imbalanced_data():
 def weird_key_names():
     return {
         "HF": {
-            "s_1": {"weird_key_d": [3, 3], "weird_key_p": 0.5},
-            "s_0": {"weird_key_d": [1, 1], "weird_key_p": 0.5},
+            "s_1": {"data": {"weird_key_d": [3, 3], "weird_key_p": 0.5}},
+            "s_0": {"data": {"weird_key_d": [1, 1], "weird_key_p": 0.5}},
         },
         "LF": {
-            "s_2": {"weird_key_d": [4, 4], "weird_key_p": 0.2},
-            "s_3": {"weird_key_d": [1.5, 1.5], "weird_key_p": 0.6},
-            "s_4": {"weird_key_d": [5, 5], "weird_key_p": 0.2},
+            "s_2": {"data": {"weird_key_d": [4, 4], "weird_key_p": 0.2}},
+            "s_3": {"data": {"weird_key_d": [1.5, 1.5], "weird_key_p": 0.6}},
+            "s_4": {"data": {"weird_key_d": [5, 5], "weird_key_p": 0.2}},
         },
     }
 
@@ -139,11 +139,11 @@ def weird_key_names():
 def sf_scenarios():
     return {
         "only_model_fidelity": {
-            "s_1": {"demand": [3, 3], "probability": 0.25},
-            "s_0": {"demand": [1, 1], "probability": 0.25},
-            "s_2": {"demand": [4, 4], "probability": 0.1},
-            "s_3": {"demand": [1.5, 1.5], "probability": 0.3},
-            "s_4": {"demand": [5, 5], "probability": 0.1},
+            "s_1": {"data": {"demand": [3, 3]}, "probability": 0.25},
+            "s_0": {"data": {"demand": [1, 1]}, "probability": 0.25},
+            "s_2": {"data": {"demand": [4, 4]}, "probability": 0.1},
+            "s_3": {"data": {"demand": [1.5, 1.5]}, "probability": 0.3},
+            "s_4": {"data": {"demand": [5, 5]}, "probability": 0.1},
         },
     }
 
@@ -151,11 +151,14 @@ def sf_scenarios():
 @pytest.fixture
 def probable_key_names():
     return {
-        "HF": {"s_1": {"d": [3, 3], "Pr": 0.5}, "s_0": {"d": [1, 1], "Pr": 0.5}},
+        "HF": {
+            "s_1": {"data": {"d": [3, 3]}, "probability": 0.5},
+            "s_0": {"data": {"d": [1, 1]}, "probability": 0.5},
+        },
         "LF": {
-            "s_2": {"d": [4, 4], "Pr": 0.2},
-            "s_3": {"d": [1.5, 1.5], "Pr": 0.6},
-            "s_4": {"d": [5, 5], "Pr": 0.2},
+            "s_2": {"data": {"d": [4, 4]}, "probability": 0.2},
+            "s_3": {"data": {"d": [1.5, 1.5]}, "probability": 0.6},
+            "s_4": {"data": {"d": [5, 5]}, "probability": 0.2},
         },
     }
 
@@ -164,16 +167,16 @@ def probable_key_names():
 def similar_scenarios():
     return {
         "HF": {
-            "scen_0": {"Demand": 4, "Probability": 0.2},
-            "scen_1": {"Demand": 1, "Probability": 0.2},
-            "scen_2": {"Demand": 2, "Probability": 0.3},
-            "scen_3": {"Demand": 5, "Probability": 0.3},
+            "scen_0": {"data": {"Demand": 4}, "probability": 0.2},
+            "scen_1": {"data": {"Demand": 1}, "probability": 0.2},
+            "scen_2": {"data": {"Demand": 2}, "probability": 0.3},
+            "scen_3": {"data": {"Demand": 5}, "probability": 0.3},
         },
         "LF": {
-            "scen_4": {"Demand": 5, "Probability": 0.2},
-            "scen_5": {"Demand": 2, "Probability": 0.3},
-            "scen_6": {"Demand": 1, "Probability": 0.3},
-            "scen_7": {"Demand": 4, "Probability": 0.2},
+            "scen_4": {"data": {"Demand": 5}, "probability": 0.2},
+            "scen_5": {"data": {"Demand": 2}, "probability": 0.3},
+            "scen_6": {"data": {"Demand": 1}, "probability": 0.3},
+            "scen_7": {"data": {"Demand": 4}, "probability": 0.2},
         },
     }
 
@@ -188,9 +191,9 @@ class TestBundleFunctions(object):
         for model in models[1:]:
             LFscenarios[model] = list(data[model].keys())
 
-        HFdemands = list(data[model0][HFkey]["Demand"] for HFkey in HFscenarios)
+        HFdemands = list(data[model0][HFkey]["data"]["Demand"] for HFkey in HFscenarios)
         LFdemands = list(
-            data[model][ls]["Demand"]
+            data[model][ls]["data"]["Demand"]
             for ls in LFscenarios[model]
             for model in models[1:]
         )
@@ -239,21 +242,12 @@ class TestBundleFunctions(object):
             },
         }
 
-        assert single_bundle(
-            weird_key_names,
-            bundle_args={"probability_key": "weird_key_p"},
-        ) == {
-            "bundle": {
-                "scenarios": {
-                    ("HF", "s_1"): pytest.approx(0.25),
-                    ("HF", "s_0"): pytest.approx(0.25),
-                    ("LF", "s_2"): pytest.approx(0.1),
-                    ("LF", "s_3"): pytest.approx(0.3),
-                    ("LF", "s_4"): pytest.approx(0.1),
-                },
-                "Probability": 1.0,
-            },
-        }
+        # The 'probability_key' bundle argument is no longer supported
+        with pytest.raises(RuntimeError, match="probability_key"):
+            single_bundle(
+                weird_key_names,
+                bundle_args={"probability_key": "weird_key_p"},
+            )
 
         with pytest.raises(RuntimeError) as excinfo:
             mf_kmeans_similar(weird_key_names)
@@ -279,26 +273,14 @@ class TestBundleFunctions(object):
             },
         }
 
-        assert mf_kmeans_similar(
-            weird_key_names,
-            bundle_args={"probability_key": "weird_key_p", "data_key": "weird_key_d"},
-        ) == {
-            "bundle_3.0": {
-                "scenarios": {
-                    ("HF", "s_1"): pytest.approx(0.55555555),
-                    ("LF", "s_2"): pytest.approx(0.22222222),
-                    ("LF", "s_4"): pytest.approx(0.22222222),
+        with pytest.raises(RuntimeError, match="probability_key"):
+            mf_kmeans_similar(
+                weird_key_names,
+                bundle_args={
+                    "probability_key": "weird_key_p",
+                    "data_key": "weird_key_d",
                 },
-                "Probability": pytest.approx(0.45),
-            },
-            "bundle_1.0": {
-                "scenarios": {
-                    ("HF", "s_0"): pytest.approx(0.45454545),
-                    ("LF", "s_3"): pytest.approx(0.54545454),
-                },
-                "Probability": pytest.approx(0.55),
-            },
-        }
+            )
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning)

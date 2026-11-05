@@ -22,8 +22,9 @@ class ScenarioPopulationProtocol(Protocol):
     Protocol for storing a finite population of scenarios that we'd like to
     sample from.
 
-    A scenario population stores the full finite set of scenario dictionaries
-    that can be sampled from. It also knows how to validate the scenario format.
+    A scenario population stores the full finite set of scenarios that can be
+    sampled from, as a list of scenario specifications of the form
+    {"ID": id, "data": {...}, "probability": p}. It also knows how to validate the scenario format.
     """
 
     def scenarios(self) -> List[Dict[str, Any]]:
@@ -38,8 +39,9 @@ class ScenarioPopulationProtocol(Protocol):
 
         Parameters
         ----------
-        scenarios : list of dict, optional
-            Scenario dictionaries to validate. If None, validate the full population.
+        scenarios : list, optional
+            Scenarios to validate, which is a list of scenario
+            specifications. If None, validate the full population.
         """
         ...
 
@@ -57,23 +59,23 @@ class ScenarioEncodingProtocol(Protocol):
 
     def scenario_vector_keys(self) -> List[str]:
         """
-        Return the scenario dictionary keys that define the uncertain data.
+        Return the scenario data keys that define the uncertain data.
         """
         ...
 
     def encode_scenario_vector(self, scenario: Dict[str, Any]) -> List[float]:
         """
-        Convert one scenario dictionary into a flat numeric vector.
+        Convert one scenario specification into a flat numeric vector.
         """
         ...
 
     def decode_scenario_vector(
         self,
         vector: Sequence[float],
-        scenario_id: str,
     ) -> Dict[str, Any]:
         """
-        Convert a flat numeric vector back into a scenario dictionary.
+        Convert a flat numeric vector back into a scenario specification,
+        i.e. a dictionary with a 'data' key.
         """
         ...
 

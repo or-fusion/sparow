@@ -1,22 +1,26 @@
 {
     "HF": {
-        "data": {"key": 2.0},
+        "data": {
+            "key": 2.0
+        },
         "scenarios": [
-            {"ID": 3, "Demand": 2.1, "Probability": 0.1},
-            {"ID": 0, "Demand": 1.2, "Probability": 0.1},
-            {"ID": 5, "Demand": 2.8, "Probability": 0.2},
-            {"ID": 1, "Demand": 1.6, "Probability": 0.2},
-            {"ID": 2, "Demand": 1.9, "Probability": 0.2},
-            {"ID": 4, "Demand": 2.7, "Probability": 0.2}
+            {"ID": "3", "data": {"Demand": 2.1}, "probability": 0.1},
+            {"ID": "0", "data": {"Demand": 1.2}, "probability": 0.1},
+            {"ID": "5", "data": {"Demand": 2.8}, "probability": 0.2},
+            {"ID": "1", "data": {"Demand": 1.6}, "probability": 0.2},
+            {"ID": "2", "data": {"Demand": 1.9}, "probability": 0.2},
+            {"ID": "4", "data": {"Demand": 2.7}, "probability": 0.2}
         ]
     },
     "LF": {
-        "data": {"another key": "a"},
+        "data": {
+            "another key": "a"
+        },
         "scenarios": [
-            {"ID": 6, "Demand": 1, "Probability": 0.3},
-            {"ID": 7, "Demand": 2, "Probability": 0.3},
-            {"ID": 8, "Demand": 3, "Probability": 0.3},
-            {"ID": 9, "Demand": 4, "Probability": 0.1}
+            {"ID": "6", "data": {"Demand": 1}, "probability": 0.3},
+            {"ID": "7", "data": {"Demand": 2}, "probability": 0.3},
+            {"ID": "8", "data": {"Demand": 3}, "probability": 0.3},
+            {"ID": "9", "data": {"Demand": 4}, "probability": 0.1}
         ]
     }
 }

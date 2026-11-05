@@ -11,7 +11,7 @@ import pyomo.repn
 import pyomo.util.vars_from_expressions as vfe
 
 import sparow.logs
-from .sp import StochasticProgram, initialize_bundles
+from .sp import StochasticProgram, initialize_bundles, validate_scenarios
 from .replace_variables_transformation import ReplaceVariablesTransformation
 
 logger = sparow.logs.logger
@@ -446,7 +446,12 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         filename : str, optional
             Path to a JSON file containing model data.
         model_data : dict, optional
-            Dictionary containing model data.
+            Dictionary containing model data.  The optional "data" key
+            maps to model-level data, and the "scenarios" key maps to a
+            list of scenario specifications:
+            ``{"data": {...}, "scenarios": [{"ID": ID, "data": {...}, "probability": p}, ...]}``.
+            The "data" and "probability" keys are optional.  The scenario ID is passed to
+            the model builder as ``data["ID"]``.
         model_builder : function, optional
             Function to build the model.
         default : bool, optional
@@ -468,9 +473,9 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
                 )
         if model_data is not None:
             self.model_data[name] = model_data.get("data", {})
-            self.scenario_data[name] = {
-                scen["ID"]: scen for scen in model_data.get("scenarios", {})
-            }
+            self.scenario_data[name] = validate_scenarios(
+                model_data.get("scenarios", []), name
+            )
         else:
             self.model_data[name] = {}
             self.scenario_data[name] = {}
@@ -560,9 +565,12 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         for k, v in self.model_data.get(model_name, {}).items():
             assert k not in data, f"Model data for {k} has already been specified!"
             data[k] = v
-        for k, v in self.scenario_data[model_name].get(scenario, {}).items():
+        scen = self.scenario_data[model_name].get(scenario, {})
+        for k, v in scen.get("data", {}).items():
             assert k not in data, f"Scenario data for {k} has already been specified!"
             data[k] = v
+        assert "ID" not in data, f"The data key 'ID' is reserved for the scenario ID"
+        data["ID"] = scenario
         return self.model_builder[model_name](data, {})
 
     def get_objective_coef(self, v: int, cached: bool = False) -> float:

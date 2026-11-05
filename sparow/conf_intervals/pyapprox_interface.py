@@ -89,7 +89,7 @@ class PyApproxModelWrapper:
 
     def _batch_to_scenarios(self, batch_vectors):
         """
-        Rebuild a list of scenario dictionaries from one batch of scenario vectors.
+        Rebuild a list of scenarios from one batch of scenario vectors.
 
         The adapter is responsible for the scenario-specific decode logic.
         """
@@ -99,11 +99,9 @@ class PyApproxModelWrapper:
         # scenario population object owns the decode logic
         scenario_population = self.model.scenario_population()
         for scen_idx_within_batch, vec in enumerate(batch_vectors):
-            scen = scenario_population.decode_scenario_vector(
-                vec,
-                scenario_id=f"pyapprox_batch_scen_{scen_idx_within_batch}",
-            )
-            scen["Probability"] = prob
+            scen = scenario_population.decode_scenario_vector(vec)
+            scen["ID"] = f"pyapprox_batch_scen_{scen_idx_within_batch}"
+            scen["probability"] = prob
             scenarios.append(scen)
 
         return scenarios

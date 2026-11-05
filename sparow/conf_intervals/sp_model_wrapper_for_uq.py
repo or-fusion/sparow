@@ -155,12 +155,13 @@ class SPModelWrapperforUQ:
             This is useful for numerical experiments where we vary/ increment
             batch size n and want to keep the same underlying superset of scenarios for comparability.
         precomputed_supersets : dict, optional
-            Mapping from replication id to a precomputed scenario list.
+            Mapping from replication id to a precomputed list of scenarios.
 
         Returns
         -------
         list of dict
-            Native SPAROW representation for a scenario batch.
+            Native SPAROW representation for a scenario batch, i.e. a
+            list of scenario specifications.
         """
         if nested_sampling:
 
@@ -193,8 +194,15 @@ class SPModelWrapperforUQ:
     ) -> Dict[str, Any]:
         """
         Build the model_data dictionary expected by SPAROW.
+
+        Sampled scenarios may contain metadata (e.g. 'Original_ID' and
+        'Population_Index'), which is excluded from the SPAROW model data.
         """
-        return {"data": {}, "scenarios": sampled_scenarios}
+        scenarios = [
+            {k: v for k, v in scen.items() if k in ("ID", "data", "probability")}
+            for scen in sampled_scenarios
+        ]
+        return {"data": {}, "scenarios": scenarios}
 
     # ------------------------------------------------------------------
     # Solver / evaluation helpers
