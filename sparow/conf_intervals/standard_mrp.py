@@ -51,7 +51,7 @@ class StandardMRP:
             # which scenarios were sampled in each replication.... this is NOT
             # part of the sampling mechanism
             sampled_population_indices_by_replication.append(
-                [s["Population_Index"] for s in sampled_scenarios.values()]
+                [s["Population_Index"] for s in sampled_scenarios]
             )
 
             # STEP 2 - solve SAA problem on this replication sample

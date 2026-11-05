@@ -52,17 +52,20 @@ class TestFacilityLoc:
             ("Medium", "Medium", "Medium", "Medium"),
             ("High", "High", "High", "High"),
         ]
-        LFscens = {}  # dictionary of LF scenarios
+        LFscens = []  # list of LF scenarios
         for lscen_idx, lscen in enumerate(LF_scenarios):
             scen = demand_levels[lscen_idx]
-            LFscens[f"{scen}"] = dict(
-                data={
-                    "Demand": [
-                        customer_demand[key][demand_value_mapping[scen]]
-                        for key in customer_demand.keys()
-                    ]
-                },
-                probability=demand_prob_mapping[scen],
+            LFscens.append(
+                dict(
+                    ID=f"{scen}",
+                    data={
+                        "Demand": [
+                            customer_demand[key][demand_value_mapping[scen]]
+                            for key in customer_demand.keys()
+                        ]
+                    },
+                    probability=demand_prob_mapping[scen],
+                )
             )
 
         model_data = {"HF": {"scenarios": LFscens}}

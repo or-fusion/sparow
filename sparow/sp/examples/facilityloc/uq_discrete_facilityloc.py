@@ -96,25 +96,28 @@ class FacilityLocationScenarioData(object):
         """
         Final output is a dictionary with a single key-value pair.
         The key is "scenarios"
-        The value is a dictionary that maps scenario IDs to scenario specifications,
-        with one entry per possible population scenario. Each scenario specification
-        contains "data" (the demands) and "probability".
+        The value is a list of scenario specifications, with one entry per
+        possible population scenario. Each scenario specification contains
+        "ID", "data" (the demands) and "probability".
         """
         total_scens = self.num_data_points ** len(self.demand_supports)
         scen_prob = 1.0 / total_scens  # each scenario vector gets equal probability
 
         scen_id = 0  # naming convention: each scenario ID string ends in a number (population index)
-        scen_dict = {}
+        scen_list = []
 
         # Use itertools.product to get cartesian product
         for demand_tuple in itertools.product(*self.demand_supports):
-            scen_dict[f"scen_{scen_id}"] = dict(
-                data={"Demand": [float(d) for d in demand_tuple]},
-                probability=scen_prob,
+            scen_list.append(
+                dict(
+                    ID=f"scen_{scen_id}",
+                    data={"Demand": [float(d) for d in demand_tuple]},
+                    probability=scen_prob,
+                )
             )
             scen_id += 1
 
-        return {"scenarios": scen_dict}
+        return {"scenarios": scen_list}
 
 
 HFScenarioObject = FacilityLocationScenarioData(num_data_points=5)

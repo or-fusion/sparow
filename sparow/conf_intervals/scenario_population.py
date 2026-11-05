@@ -5,7 +5,7 @@ The scenario population object is intended to satisfy:
   - ScenarioEncodingProtocol
 
 This object stores:
-  - the full dictionary of scenarios (keyed by scenario ID),
+  - the full list of scenarios,
   - the required scenario keys according to native SPAROW scenario format,
   - and optional encode/decode logic for scenario vectors.
 """
@@ -20,21 +20,22 @@ class FiniteScenarioPopulation:
     """
     Concrete representation of a finite population of scenarios to sample from.
 
-    Scenarios are specified in the native SPAROW format: a dictionary that
-    maps scenario IDs to scenario specifications, where each scenario
-    specification is a dictionary with keys:
+    Scenarios are specified in the native SPAROW format: a list of
+    scenario specifications, where each scenario specification is a
+    dictionary with keys:
+      - 'ID': the unique scenario ID
       - 'data': a dictionary of scenario data
       - 'probability': the scenario probability
 
     For example:
 
-        {
-            "s0": {"data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
-            "s1": {"data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
-        }
+        [
+            {"ID": "s0", "data": {"Demand": [1.0, 2.0]}, "probability": 0.5},
+            {"ID": "s1", "data": {"Demand": [3.0, 4.0]}, "probability": 0.5},
+        ]
 
     This object stores:
-      - the full dictionary of scenarios,
+      - the full list of scenarios,
       - the required scenario data keys,
       - optional encode/decode logic for scenario vectors,
       - optional fixed metadata that is required for the given problem instance.
@@ -46,7 +47,7 @@ class FiniteScenarioPopulation:
 
     def __init__(
         self,
-        scenarios: Dict[Any, Dict[str, Any]],
+        scenarios: List[Dict[str, Any]],
         required_scenario_keys: Optional[List[str]] = None,
         scenario_vector_keys: Optional[List[str]] = None,
         fixed_metadata: Optional[Dict[str, Any]] = None,
@@ -66,7 +67,7 @@ class FiniteScenarioPopulation:
 
         self.validate(self._scenarios)
 
-    def scenarios(self) -> Dict[Any, Dict[str, Any]]:
+    def scenarios(self) -> List[Dict[str, Any]]:
         """
         Return the full finite scenario population.
         """
@@ -88,13 +89,13 @@ class FiniteScenarioPopulation:
         """
         return dict(self._fixed_metadata)
 
-    def validate(self, scenarios: Optional[Dict[Any, Dict[str, Any]]] = None) -> None:
+    def validate(self, scenarios: Optional[List[Dict[str, Any]]] = None) -> None:
         """
         Validate either the provided scenarios or the stored full population.
 
-        The scenarios must be a dictionary mapping scenario IDs to scenario
-        specifications.  Every scenario specification must be a dictionary
-        containing:
+        The scenarios must be a list of scenario specifications.  Every
+        scenario specification must be a dictionary containing:
+          - 'ID', which is unique within the list
           - 'probability'
           - 'data', which is a dictionary containing any user-specified
             required keys
@@ -102,15 +103,22 @@ class FiniteScenarioPopulation:
         if scenarios is None:
             scenarios = self._scenarios
 
-        if not isinstance(scenarios, dict):
+        if not isinstance(scenarios, (list, tuple)):
             raise RuntimeError(
-                "Scenario population must be a dictionary that maps scenario "
-                "IDs to scenario specifications."
+                "Scenario population must be a list of scenario specifications."
             )
 
-        for sid, scen in scenarios.items():
+        ids = set()
+        for i, scen in enumerate(scenarios):
             if not isinstance(scen, dict):
-                raise RuntimeError(f"Scenario '{sid}' is not a dictionary.")
+                raise RuntimeError(f"Scenario {i} is not a dictionary.")
+
+            if "ID" not in scen:
+                raise RuntimeError(f"Scenario {i} is missing required key 'ID'")
+            sid = scen["ID"]
+            if sid in ids:
+                raise RuntimeError(f"Duplicate scenario ID '{sid}'")
+            ids.add(sid)
 
             missing = [key for key in ("data", "probability") if key not in scen]
             if missing:
@@ -161,15 +169,15 @@ class FiniteScenarioPopulation:
         """
         Convert a flat vector back into a scenario specification.
 
-        Note that this will contain the 'data' field, but not the
-        'probability' field.  Batch-construction logic assigns the scenario
+        Note that this will contain the 'data' field, but not the 'ID' or
+        'probability' fields.  Batch-construction logic assigns the scenario
         ID and probability weight later.
 
         So the decoded scenario data contains:
           - the uncertain fields reconstructed from the vector,
           - any fixed metadata needed by the specific problem instance/ application.
         """
-        ref = next(iter(self._scenarios.values()))["data"]
+        ref = self._scenarios[0]["data"]
 
         data = dict(self._fixed_metadata)
 
@@ -191,4 +199,4 @@ class FiniteScenarioPopulation:
         """
         Return the dimension of one encoded scenario vector.
         """
-        return len(self.encode_scenario_vector(next(iter(self._scenarios.values()))))
+        return len(self.encode_scenario_vector(self._scenarios[0]))

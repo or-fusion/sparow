@@ -71,9 +71,9 @@ class TestBenders_NonPersistent:
         )
         a_val = 1
         model_data = {
-            "scenarios": {
-                1: dict(data={"LB": None, "UB": None}),
-            },
+            "scenarios": [
+                dict(ID=1, data={"LB": None, "UB": None}),
+            ],
         }
         app_data = dict(a=a_val, c=0, L=1, R=1)
         app = adjustable_absolute_value(
@@ -98,9 +98,9 @@ class TestBenders_NonPersistent:
         a_vals = [1, -1, 3, 4]
         for a_val in a_vals:
             model_data = {
-                "scenarios": {
-                    1: dict(data={"LB": None, "UB": None}),
-                },
+                "scenarios": [
+                    dict(ID=1, data={"LB": None, "UB": None}),
+                ],
             }
             app_data = dict(a=a_val, c=0, L=1, R=1)
             app = adjustable_absolute_value(
@@ -440,9 +440,9 @@ class TestBenders_Persistent:
         )
         a_val = 1
         model_data = {
-            "scenarios": {
-                1: dict(data={"LB": None, "UB": None}),
-            },
+            "scenarios": [
+                dict(ID=1, data={"LB": None, "UB": None}),
+            ],
         }
         app_data = dict(a=a_val, c=0, L=1, R=1)
         app = adjustable_absolute_value(
@@ -471,9 +471,9 @@ class TestBenders_Persistent:
         a_vals = [1, -1, 3, 4]
         for a_val in a_vals:
             model_data = {
-                "scenarios": {
-                    1: dict(data={"LB": None, "UB": None}),
-                },
+                "scenarios": [
+                    dict(ID=1, data={"LB": None, "UB": None}),
+                ],
             }
             app_data = dict(a=a_val, c=0, L=1, R=1)
             app = adjustable_absolute_value(

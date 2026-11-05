@@ -448,9 +448,9 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         model_data : dict, optional
             Dictionary containing model data.  The optional "data" key
             maps to model-level data, and the "scenarios" key maps to a
-            dictionary of scenario specifications indexed by scenario ID:
-            ``{"data": {...}, "scenarios": {ID: {"data": {...}, "probability": p}}}``.
-            The "probability" key is optional.  The scenario ID is passed to
+            list of scenario specifications:
+            ``{"data": {...}, "scenarios": [{"ID": ID, "data": {...}, "probability": p}, ...]}``.
+            The "data" and "probability" keys are optional.  The scenario ID is passed to
             the model builder as ``data["ID"]``.
         model_builder : function, optional
             Function to build the model.
@@ -474,7 +474,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         if model_data is not None:
             self.model_data[name] = model_data.get("data", {})
             self.scenario_data[name] = validate_scenarios(
-                model_data.get("scenarios", {}), name
+                model_data.get("scenarios", []), name
             )
         else:
             self.model_data[name] = {}

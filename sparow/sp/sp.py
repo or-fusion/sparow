@@ -14,30 +14,30 @@ import sparow.logs
 
 logger = sparow.logs.logger
 
-_SCENARIO_KEYS = {"data", "probability"}
+_SCENARIO_KEYS = {"ID", "data", "probability"}
 
 
 def validate_scenarios(scenarios: Any, model_name: str | None = None) -> dict:
     """
     Validate the "scenarios" element of model data.
 
-    Scenarios are specified as a dictionary that maps scenario IDs to
-    scenario specifications.  Each scenario specification is a dictionary
-    with the following optional keys:
+    Scenarios are specified as a list of scenario specifications.  Each
+    scenario specification is a dictionary with the following keys:
 
-    - "data": a dictionary of scenario-specific data
-    - "probability": the scenario probability
+    - "ID": the unique scenario ID (required)
+    - "data": a dictionary of scenario-specific data (optional)
+    - "probability": the scenario probability (optional)
 
     For example::
 
-        {
-            1: {"data": {"d": 15}, "probability": 0.4},
-            2: {"data": {"d": 60}, "probability": 0.6},
-        }
+        [
+            {"ID": 1, "data": {"d": 15}, "probability": 0.4},
+            {"ID": 2, "data": {"d": 60}, "probability": 0.6},
+        ]
 
     Parameters
     ----------
-    scenarios : dict
+    scenarios : list
         The scenario specifications.
     model_name : str, optional
         The name of the model (used in error messages).
@@ -46,40 +46,48 @@ def validate_scenarios(scenarios: Any, model_name: str | None = None) -> dict:
     -------
     dict
         A dictionary mapping scenario IDs to dictionaries with keys "data"
-        and (optionally) "probability".
+        and (optionally) "probability".  The scenario order is preserved.
 
     Raises
     ------
     TypeError
-        If the scenarios are not specified with a dictionary.
+        If the scenarios are not specified with a list.
     ValueError
-        If a scenario specification is not valid.
+        If a scenario specification is not valid, or if scenario IDs are
+        not unique.
     """
-    if not isinstance(scenarios, dict):
+    if not isinstance(scenarios, (list, tuple)):
         raise TypeError(
             f"The scenarios for model '{model_name}' must be specified with a "
-            f"dictionary that maps scenario IDs to scenario specifications, "
-            f"e.g. {{1: {{'data': {{'d': 15}}, 'probability': 0.1}}}}.  "
+            f"list of scenario specifications, "
+            f"e.g. [{{'ID': 1, 'data': {{'d': 15}}, 'probability': 0.1}}].  "
             f"Received an object of type {type(scenarios).__name__}."
         )
     ans = {}
-    for sid, scen in scenarios.items():
+    for i, scen in enumerate(scenarios):
         if not isinstance(scen, dict):
             raise ValueError(
-                f"Scenario '{sid}' in model '{model_name}' must be a dictionary"
+                f"Scenario {i} in model '{model_name}' must be a dictionary"
             )
+        if "ID" not in scen:
+            raise ValueError(
+                f"Scenario {i} in model '{model_name}' is missing the required 'ID' key"
+            )
+        sid = scen["ID"]
         extra = set(scen.keys()) - _SCENARIO_KEYS
         if extra:
             raise ValueError(
                 f"Scenario '{sid}' in model '{model_name}' has unexpected keys "
                 f"{sorted(extra, key=str)}.  Valid keys are {sorted(_SCENARIO_KEYS)}."
             )
+        if sid in ans:
+            raise ValueError(f"Duplicate scenario ID '{sid}' in model '{model_name}'")
         data = scen.get("data", {})
         if not isinstance(data, dict):
             raise ValueError(
                 f"The 'data' value of scenario '{sid}' in model '{model_name}' must be a dictionary"
             )
-        ans[sid] = dict(scen)
+        ans[sid] = {k: v for k, v in scen.items() if k != "ID"}
         ans[sid]["data"] = data
     return ans
 
