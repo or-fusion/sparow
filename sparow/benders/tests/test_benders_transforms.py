@@ -172,7 +172,7 @@ class TestBendersTransforms:
 
         model_data = {
             "scenarios": [
-                {"ID": 1, "LB": None, "UB": None},
+                dict(ID=1, data={"LB": None, "UB": None}),
             ],
         }
         c_values = [1, 2]
@@ -362,7 +362,10 @@ class TestBendersTransforms:
         constant_offset = 10
         model_data = {
             "scenarios": [
-                {"ID": 1, "LB": None, "UB": None, "constant_offset": constant_offset},
+                dict(
+                    ID=1,
+                    data={"LB": None, "UB": None, "constant_offset": constant_offset},
+                ),
             ],
         }
         c_vals = [0, 1, -3, 4]
@@ -468,7 +471,10 @@ class TestBendersTransforms:
         constant_offset = 10
         model_data = {
             "scenarios": [
-                {"ID": 1, "LB": None, "UB": None, "constant_offset": constant_offset},
+                dict(
+                    ID=1,
+                    data={"LB": None, "UB": None, "constant_offset": constant_offset},
+                ),
             ],
         }
         f_options = [True, False]

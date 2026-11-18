@@ -32,7 +32,11 @@ When you initialize a model, Sparow automatically creates bundles using a defaul
 
    # Initialize with custom bundling scheme
    from sparow.sp.bundling.bundling_functions import kmeans_similar
-   bundles = kmeans_similar(sp.model_data, models=[None], bundle_args={'num_clusters': 10})
+   bundles = kmeans_similar(
+       sp.scenario_data,
+       models=[None],
+       bundle_args={'bun_size': 10, 'data_key': 'Demand'},
+   )
    sp.set_bundles(bundles)
 
 Bundle Structure
@@ -132,11 +136,13 @@ Scenarios are grouped by similarity using k-means clustering:
    from sparow.sp.bundling.bundling_functions import kmeans_similar
 
    # Group similar scenarios together
-   bundles = kmeans_similar(data, models, bundle_args={'num_clusters': 10})
+   bundles = kmeans_similar(
+       data, models, bundle_args={'bun_size': 10, 'data_key': 'Demand'}
+   )
 
 Parameters:
-- `num_clusters`: Number of bundles to create
-- `dkey`: Data key to use for clustering (default: first numeric key found)
+- `bun_size`: Approximate number of scenarios in each bundle (default: 2)
+- `data_key`: Scenario data key to use for clustering (required)
 
 Use when:
 - Scenarios have natural groupings
@@ -216,7 +222,8 @@ You can create your own bundling schemes:
        Parameters
        ----------
        data : dict
-           Model and scenario data
+           Scenario data: data[model][scenario_id] is a dictionary of the
+           form {"data": {...}, "probability": p}
        models : list
            List of model names
        bundle_args : dict
@@ -238,7 +245,7 @@ You can create your own bundling schemes:
        high_demand = []
 
        for scen_id, scen_data in scenarios.items():
-           if scen_data['d'] < 50:
+           if scen_data['data']['d'] < 50:
                low_demand.append(scen_id)
            else:
                high_demand.append(scen_id)
@@ -247,13 +254,13 @@ You can create your own bundling schemes:
        if low_demand:
            bundles['low_demand'] = {
                'scenarios': {s: 1.0/len(low_demand) for s in low_demand},
-               'Probability': sum(scenarios[s]['Probability'] for s in low_demand)
+               'Probability': sum(scenarios[s]['probability'] for s in low_demand)
            }
 
        if high_demand:
            bundles['high_demand'] = {
                'scenarios': {s: 1.0/len(high_demand) for s in high_demand},
-               'Probability': sum(scenarios[s]['Probability'] for s in high_demand)
+               'Probability': sum(scenarios[s]['probability'] for s in high_demand)
            }
 
        # Normalize bundle probabilities
@@ -285,14 +292,13 @@ Most bundling schemes accept additional arguments through `bundle_args`:
 
 .. code-block:: python
 
-   # K-means with specific number of clusters
+   # K-means with specific bundle size
    bundles = kmeans_similar(
        data,
        models=["model1"],
        bundle_args={
-           'num_clusters': 8,
-           'dkey': 'Demand',  # Specify data key for clustering
-           'pkey': 'Probability'  # Specify probability key
+           'bun_size': 8,
+           'data_key': 'Demand',  # Specify scenario data key for clustering
        }
    )
 
@@ -304,10 +310,11 @@ Most bundling schemes accept additional arguments through `bundle_args`:
    )
 
 Common Bundle Arguments:
-- `num_clusters`: Number of clusters for k-means
-- `bun_size`: Bundle size for random bundling
-- `dkey`: Data key to use for clustering
-- `pkey`: Probability key in scenario data
+- `bun_size`: Approximate bundle size for k-means and random bundling
+- `data_key`: Scenario data key to use for clustering (required for k-means)
+
+Scenario probabilities are always taken from the `"probability"` key of each
+scenario.
 - `bundles`: List of bundles for custom bundling
 
 Practical Bundling Examples
@@ -327,11 +334,11 @@ Newsvendor Problem
    # Demand scenarios
    model_data = {
        "scenarios": [
-           {"ID": 1, "d": 15, "Probability": 0.1},
-           {"ID": 2, "d": 60, "Probability": 0.6},
-           {"ID": 3, "d": 72, "Probability": 0.2},
-           {"ID": 4, "d": 78, "Probability": 0.05},
-           {"ID": 5, "d": 82, "Probability": 0.05},
+           {"ID": 1, "data": {"d": 15}, "probability": 0.1},
+           {"ID": 2, "data": {"d": 60}, "probability": 0.6},
+           {"ID": 3, "data": {"d": 72}, "probability": 0.2},
+           {"ID": 4, "data": {"d": 78}, "probability": 0.05},
+           {"ID": 5, "data": {"d": 82}, "probability": 0.05},
        ],
    }
 
@@ -339,13 +346,14 @@ Newsvendor Problem
    sp = stochastic_program(first_stage_variables=["x"])
    sp.initialize_application(app_data=app_data)
 
-   # Use k-means bundling with 2 clusters
-   bundles = kmeans_similar(
-       model_data,
-       models=[None],
-       bundle_args={'num_clusters': 2}
-   )
    sp.initialize_model(model_data=model_data, model_builder=builder)
+
+   # Use k-means bundling with about 2 scenarios per bundle
+   bundles = kmeans_similar(
+       sp.scenario_data,
+       models=[None],
+       bundle_args={'bun_size': 2, 'data_key': 'd'}
+   )
    sp.set_bundles(bundles)
 
 Facility Location Problem
@@ -360,7 +368,7 @@ Facility Location Problem
        # Group by region
        regions = {}
        for scen_id, scen_data in scenarios.items():
-           region = scen_data['region']
+           region = scen_data['data']['region']
            if region not in regions:
                regions[region] = []
            regions[region].append(scen_id)
@@ -370,7 +378,7 @@ Facility Location Problem
        for region, scens in regions.items():
            bundles[f'region_{region}'] = {
                'scenarios': {s: 1.0/len(scens) for s in scens},
-               'Probability': sum(scenarios[s]['Probability'] for s in scens)
+               'Probability': sum(scenarios[s]['probability'] for s in scens)
            }
 
        # Normalize
@@ -381,7 +389,7 @@ Facility Location Problem
        return bundles
 
    # Apply regional bundling
-   sp.set_bundles(regional_bundling(sp.model_data, [None], {}))
+   sp.set_bundles(regional_bundling(sp.scenario_data, [None], {}))
 
 When to Use Different Bundling Schemes
 --------------------------------------

@@ -8,21 +8,21 @@ from sparow.sp import stochastic_program
 app_data = dict(a=0, c=0, L=1, R=1)
 model_data = {
     "scenarios": [
-        {"ID": 1, "LB": None, "UB": None},
+        dict(ID=1, data={"LB": None, "UB": None}),
     ],
 }
 
 modified_app_data_example = dict(a=3, c=0, L=1, R=1, LB=-5, UB=5)
 modified_model_data_example = {
     "scenarios": [
-        {"ID": 1, "LB": -5, "UB": 5},
+        dict(ID=1, data={"LB": -5, "UB": 5}),
     ],
 }
 
 modified_app_data = dict(a=3, c=0, L=1, R=1)
 modified_model_data = {
     "scenarios": [
-        {"ID": 1, "LB": -5, "UB": 5},
+        dict(ID=1, data={"LB": -5, "UB": 5}),
     ],
 }
 

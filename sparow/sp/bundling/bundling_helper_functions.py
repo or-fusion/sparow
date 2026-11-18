@@ -33,31 +33,20 @@ import warnings
     - keys are model names (e.g., 'HF', 'LF')
     - values are themselves dictionaries
         - keys are scenario names (e.g., 'scen_0', 'scen_1')
-        - values are themselves dictionaries
-            - keys are scenario information labels (e.g., 'Demand', 'Probability')
-            - values are corresponding numerical values or lists
+        - values are themselves dictionaries with keys:
+            - 'data': a dictionary whose keys are scenario information labels
+              (e.g., 'Demand') and whose values are numerical values or lists
+            - 'probability' (optional): the scenario probability
 
 # example of data dictionary:
     {
         "HF": {
-            "scen_1": {
-                "Demand": [3, 2],
-                "Probability": 0.4,
-            },
-            "scen_0": {
-                "Demand": [1, 1],
-                "Probability": 0.6,
-            },
+            "scen_1": {"data": {"Demand": [3, 2]}, "probability": 0.4},
+            "scen_0": {"data": {"Demand": [1, 1]}, "probability": 0.6},
         },
         "LF": {
-            "scen_3": {
-                "Demand": [4, 4],
-                "Probability": 0.2,
-            },
-            "scen_2": {
-                "Demand": [2, 2],
-                "Probability": 0.8,
-            },
+            "scen_3": {"data": {"Demand": [4, 4]}, "probability": 0.2},
+            "scen_2": {"data": {"Demand": [2, 2]}, "probability": 0.8},
         },
     }
 """
@@ -66,6 +55,10 @@ import warnings
 """
 ******************* HELPER FUNCTIONS *******************
 """
+
+
+# The key used to specify scenario probabilities
+PKEY = "probability"
 
 
 def scen_name(model, scenario):
@@ -79,52 +72,34 @@ def scen_key(model, scenario):
 
 
 def check_data_dict_keys(data, model0, bundle_args, dkey_required=False):
-    # by default, specifying a demand key is not required
-    dkey = None  # initialize demand and probability keys
-    pkey = None
+    """
+    Returns the tuple (dkey, pkey), where dkey is the scenario data key used
+    by the bundling scheme (specified with the 'data_key' bundle argument) and
+    pkey is the key used to specify scenario probabilities.
 
-    if bundle_args:  # will populate dkey and pkey if they're provided
+    Scenario probabilities are specified with the 'probability' key in each
+    scenario.  If no scenarios specify a probability, then pkey is None.
+    """
+    dkey = None
+    if bundle_args:
         dkey = bundle_args.get("data_key", None)
-        pkey = bundle_args.get("probability_key", None)
+        if "probability_key" in bundle_args:
+            raise RuntimeError(
+                "The 'probability_key' bundle argument is no longer supported.  "
+                "Scenario probabilities are specified with the 'probability' key "
+                "of each scenario."
+            )
 
     if dkey is None and dkey_required == True:
         raise RuntimeError(f"Specify data_key in bundle_args")
 
-    if pkey is None:
-        # search entire data dictionary for probability key(s)
-        pkeys_to_check = [
-            "Probability",
-            "probability",
-            "PROBABILITY",
-            "prob",
-            "Prob",
-            "p",
-            "P",
-            "Pr",
-            "pr",
-        ]
-        all_scens = list(data.values())
-        list_all_scens = [list(all_scens[s].values()) for s in range(len(all_scens))]
-        all_keys = [
-            list(item.keys())
-            for l in range(len(list_all_scens))
-            for item in list_all_scens[l]
-        ]
-        flat_list = list(
-            set([list_item for sublist in all_keys for list_item in sublist])
+    if any(PKEY in sdata for mdata in data.values() for sdata in mdata.values()):
+        pkey = PKEY
+    else:
+        pkey = None
+        warnings.warn(
+            "No scenario probabilities are given; assuming uniform distribution.",
+            UserWarning,
         )
-        existing_pkey = [
-            list_item for list_item in flat_list if list_item in pkeys_to_check
-        ]
-        if len(existing_pkey) > 1:
-            raise RuntimeError(f"Specify probability_key in bundle_args")
-        elif len(existing_pkey) == 0:
-            pkey = None
-            warnings.warn(
-                "No scenario probabilities are given; assuming uniform distribution.",
-                UserWarning,
-            )
-        else:
-            pkey = existing_pkey[0]
 
     return dkey, pkey

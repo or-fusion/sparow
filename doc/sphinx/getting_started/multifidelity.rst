@@ -33,19 +33,42 @@ Key Benefits:
 Multifidelity Data Structure
 ----------------------------
 
-Multifidelity data has a nested structure with separate models:
+Each model has its own model data, and its scenarios are specified in the
+standard list format:
 
 .. code-block:: python
 
-   mf_data = {
-       "HF": {  # High-fidelity model
-           "scen_1": {"Demand": 3, "Probability": 0.4},
-           "scen_0": {"Demand": 1, "Probability": 0.6},
+   hf_data = {  # High-fidelity model
+       "scenarios": [
+           {"ID": "scen_1", "data": {"Demand": 3}, "probability": 0.4},
+           {"ID": "scen_0", "data": {"Demand": 1}, "probability": 0.6},
+       ],
+   }
+   lf_data = {  # Low-fidelity model
+       "scenarios": [
+           {"ID": "scen_3", "data": {"Demand": 4}, "probability": 0.2},
+           {"ID": "scen_2", "data": {"Demand": 2}, "probability": 0.8},
+       ],
+   }
+
+   sp.initialize_model(name="HF", model_data=hf_data, model_builder=hf_builder)
+   sp.initialize_model(name="LF", model_data=lf_data, model_builder=lf_builder, default=False)
+
+After the models are initialized, `sp.scenario_data` contains the scenarios
+of all models, indexed by model name and scenario ID.  This is the data that
+is passed to the multifidelity bundling schemes:
+
+.. code-block:: python
+
+   sp.scenario_data == {
+       "HF": {
+           "scen_1": {"data": {"Demand": 3}, "probability": 0.4},
+           "scen_0": {"data": {"Demand": 1}, "probability": 0.6},
        },
-       "LF": {  # Low-fidelity model
-           "scen_3": {"Demand": 4, "Probability": 0.2},
-           "scen_2": {"Demand": 2, "Probability": 0.8},
-       }
+       "LF": {
+           "scen_3": {"data": {"Demand": 4}, "probability": 0.2},
+           "scen_2": {"data": {"Demand": 2}, "probability": 0.8},
+       },
    }
 
 Key Characteristics:
@@ -68,7 +91,7 @@ Each HF scenario is paired with an LF scenario:
    from sparow.sp.bundling.MF_schemes import mf_paired
 
    # Pair HF and LF scenarios
-   bundles = mf_paired(data, models=["HF", "LF"], bundle_args)
+   bundles = mf_paired(sp.scenario_data, models=["HF", "LF"], bundle_args=bundle_args)
 
 Use when:
 - You have a direct correspondence between HF and LF scenarios
@@ -84,7 +107,7 @@ LF scenarios are randomly nested within HF scenarios:
    from sparow.sp.bundling.MF_schemes import mf_random_nested
 
    # Randomly nest LF scenarios
-   bundles = mf_random_nested(data, models=["HF", "LF"], bundle_args)
+   bundles = mf_random_nested(sp.scenario_data, models=["HF", "LF"], bundle_args=bundle_args)
 
 Use when:
 - No clear relationship between HF and LF scenarios
@@ -100,11 +123,15 @@ LF scenarios are bundled with the closest HF scenario:
    from sparow.sp.bundling.MF_schemes import mf_kmeans_similar
 
    # Bundle similar scenarios
-   bundles = mf_kmeans_similar(data, models=["HF", "LF"], bundle_args)
+   bundles = mf_kmeans_similar(
+       sp.scenario_data,
+       models=["HF", "LF"],
+       bundle_args={'bun_size': 2, 'data_key': 'Demand'},
+   )
 
 Parameters:
-- `bun_size`: Approximate size of each bundle
-- `dkey`: Data key to use for distance calculation
+- `bun_size`: Approximate size of each bundle (default: 2)
+- `data_key`: Scenario data key to use for distance calculation (required)
 
 Use when:
 - LF scenarios should be grouped with similar HF scenarios
@@ -120,7 +147,11 @@ LF scenarios are bundled with the furthest HF scenario:
    from sparow.sp.bundling.MF_schemes import mf_kmeans_dissimilar
 
    # Bundle dissimilar scenarios
-   bundles = mf_kmeans_dissimilar(data, models=["HF", "LF"], bundle_args)
+   bundles = mf_kmeans_dissimilar(
+       sp.scenario_data,
+       models=["HF", "LF"],
+       bundle_args={'bun_size': 2, 'data_key': 'Demand'},
+   )
 
 Use when:
 - You want to explore diverse scenario combinations
@@ -136,7 +167,7 @@ Specify your own multifidelity bundles:
    from sparow.sp.bundling.MF_schemes import mf_bundle_from_list
 
    # Custom multifidelity bundles
-   bundles = mf_bundle_from_list(data, models=["HF", "LF"], bundle_args={
+   bundles = mf_bundle_from_list(sp.scenario_data, models=["HF", "LF"], bundle_args={
        "bundles": [
            [("HF", "scen_1"), ("LF", "scen_3")],
            [("HF", "scen_0"), ("LF", "scen_2")]
@@ -179,9 +210,9 @@ To create a multifidelity stochastic program:
    # Step 4: Set multifidelity bundling
    from sparow.sp.bundling.MF_schemes import mf_kmeans_similar
    bundles = mf_kmeans_similar(
-       sp.model_data,
+       sp.scenario_data,
        models=["HF", "LF"],
-       bundle_args={'bun_size': 3}
+       bundle_args={'bun_size': 3, 'data_key': 'd'}
    )
    sp.set_bundles(bundles)
 
@@ -232,9 +263,10 @@ You can assign different weights to models to control their influence:
 
    # Create weighted multifidelity bundles
    bundles = mf_kmeans_similar(
-       sp.model_data,
+       sp.scenario_data,
        models=["HF", "LF"],
-       model_weight=model_weights
+       model_weight=model_weights,
+       bundle_args={'data_key': 'd'}
    )
    sp.set_bundles(bundles)
 
@@ -261,7 +293,7 @@ Newsvendor Problem
    # High-fidelity model with detailed scenarios
    hf_data = {
        "scenarios": [
-           {"ID": f"hf_{i}", "d": d, "Probability": 0.1}
+           {"ID": f"hf_{i}", "data": {"d": d}, "probability": 0.1}
            for i, d in enumerate([15, 60, 72, 78, 82, 65, 55, 90])
        ],
    }
@@ -269,7 +301,7 @@ Newsvendor Problem
    # Low-fidelity model with aggregated scenarios
    lf_data = {
        "scenarios": [
-           {"ID": f"lf_{i}", "d": d, "Probability": 0.25}
+           {"ID": f"lf_{i}", "data": {"d": d}, "probability": 0.25}
            for i, d in enumerate([30, 50, 70, 90])
        ],
    }
@@ -284,9 +316,9 @@ Newsvendor Problem
 
    # Use multifidelity bundling
    bundles = mf_kmeans_similar(
-       sp.model_data,
+       sp.scenario_data,
        models=["HF", "LF"],
-       bundle_args={'bun_size': 3},
+       bundle_args={'bun_size': 3, 'data_key': 'd'},
        model_weight={'HF': 0.7, 'LF': 0.3}
    )
    sp.set_bundles(bundles)
@@ -299,7 +331,7 @@ Facility Location Problem
    # HF model: Detailed customer demand scenarios
    hf_data = {
        "scenarios": [
-           {"ID": f"hf_{i}", "demands": detailed_demands[i], "Probability": probs[i]}
+           {"ID": f"hf_{i}", "data": {"demands": detailed_demands[i]}, "probability": probs[i]}
            for i in range(100)
        ],
    }
@@ -307,7 +339,7 @@ Facility Location Problem
    # LF model: Aggregated demand regions
    lf_data = {
        "scenarios": [
-           {"ID": f"lf_{i}", "demands": aggregated_demands[i], "Probability": probs[i]}
+           {"ID": f"lf_{i}", "data": {"demands": aggregated_demands[i]}, "probability": probs[i]}
            for i in range(10)
        ],
    }
@@ -319,7 +351,7 @@ Facility Location Problem
    sp.initialize_model(name="LF", model_data=lf_data, model_builder=facility_builder, default=False)
 
    # Use paired bundling for direct correspondence
-   bundles = mf_paired(sp.model_data, models=["HF", "LF"])
+   bundles = mf_paired(sp.scenario_data, models=["HF", "LF"])
    sp.set_bundles(bundles)
 
 When to Use Multifidelity
@@ -355,7 +387,8 @@ Start with LF models and adaptively refine with HF:
 
    # Phase 2: Add HF and refine
    sp.initialize_model(name="HF", model_data=hf_data, model_builder=hf_builder, default=False)
-   bundles = mf_kmeans_similar(sp.model_data, models=["HF", "LF"])
+   bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "LF"],
+                               bundle_args={'data_key': 'd'})
    sp.set_bundles(bundles)
    solver.solve(sp)  # Refined solution
 
@@ -367,15 +400,17 @@ Gradually increase the fidelity during solving:
 .. code-block:: python
 
    # Start with mostly LF
-   bundles = mf_kmeans_similar(sp.model_data, models=["HF", "LF"],
-                               model_weight={'HF': 0.2, 'LF': 0.8})
+   bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "LF"],
+                               model_weight={'HF': 0.2, 'LF': 0.8},
+                               bundle_args={'data_key': 'd'})
    sp.set_bundles(bundles)
 
    # Gradually increase HF weight
    for iteration in range(10):
        hf_weight = 0.2 + iteration * 0.08
-       bundles = mf_kmeans_similar(sp.model_data, models=["HF", "LF"],
-                                   model_weight={'HF': hf_weight, 'LF': 1-hf_weight})
+       bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "LF"],
+                                   model_weight={'HF': hf_weight, 'LF': 1-hf_weight},
+                                   bundle_args={'data_key': 'd'})
        sp.set_bundles(bundles)
        results = solver.solve(sp)
 
@@ -390,8 +425,9 @@ Use more than two fidelity levels:
    sp.initialize_model(name="MF", model_data=mf_data, model_builder=mf_builder, default=False)
 
    # Bundle all three levels
-   bundles = mf_kmeans_similar(sp.model_data, models=["HF", "MF", "LF"],
-                               model_weight={'HF': 0.5, 'MF': 0.3, 'LF': 0.2})
+   bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "MF", "LF"],
+                               model_weight={'HF': 0.5, 'MF': 0.3, 'LF': 0.2},
+                               bundle_args={'data_key': 'd'})
    sp.set_bundles(bundles)
 
 Best Practices for Multifidelity

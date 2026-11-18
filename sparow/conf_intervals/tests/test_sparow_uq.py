@@ -207,7 +207,7 @@ def test_without_replacement_sampling(advanced_model):
 
 def test_with_replacement_sampling(advanced_model):
     """
-    With replacement, all sampled scenarios should still get Probability = 1/n,
+    With replacement, all sampled scenarios should still get probability = 1/n,
     and duplicates are allowed.
     """
     n = 600
@@ -220,8 +220,9 @@ def test_with_replacement_sampling(advanced_model):
     sampled = sampler.draw_scenarios(n=n, replication_id=0)
 
     # Every sampled scenario should have probability 1/n
+    assert len(sampled) == n
     for s in sampled:
-        assert math.isclose(s["Probability"], 1.0 / n)
+        assert math.isclose(s["probability"], 1.0 / n)
 
     # We do not require duplicates to appear, only that duplicates are allowed.
     # So the main assertion is that no error occurs and probabilities are correct.
@@ -263,21 +264,40 @@ def test_nested_sample_correctness(advanced_model):
     "bad_scenarios, expected_msg",
     [
         (
-            [{"ID": "scen_0", "Probability": 1.0}],
-            "is missing required key",
+            [{"ID": "scen_0", "data": {}, "probability": 1.0}],
+            "is missing required data key",
         ),  # missing Yield
         (
-            [{"Yield": {"WHEAT": 2.0}, "Probability": 1.0}],
+            [{"ID": "scen_1", "probability": 1.0}],
             "is missing required key",
+        ),  # missing data
+        (
+            [{"ID": "scen_2", "data": {"Yield": {"WHEAT": 2.0}}}],
+            "is missing required key",
+        ),  # missing probability
+        (
+            [{"data": {"Yield": {"WHEAT": 2.0}}, "probability": 1.0}],
+            "is missing required key 'ID'",
         ),  # missing ID
         (
-            [{"ID": "scen_2", "Yield": {"WHEAT": 2.0}}],
-            "is missing required key",
-        ),  # missing Probability
+            [
+                {"ID": "scen_0", "data": {"Yield": {"WHEAT": 2.0}}, "probability": 0.5},
+                {"ID": "scen_0", "data": {"Yield": {"WHEAT": 3.0}}, "probability": 0.5},
+            ],
+            "Duplicate scenario ID",
+        ),  # duplicate ID
         (
-            [[{"ID": "scen_0", "Probability": 1.0, "Yield": {"WHEAT": 2.0}}]],
+            [[{"ID": "scen_0", "data": {"Yield": {"WHEAT": 2.0}}, "probability": 1.0}]],
             "is not a dictionary",
-        ),  # not a dictionary
+        ),  # scenario is not a dictionary
+        (
+            [{"ID": "scen_0", "data": [{"Yield": {"WHEAT": 2.0}}], "probability": 1.0}],
+            "is not a dictionary",
+        ),  # scenario data is not a dictionary
+        (
+            {"scen_0": {"data": {"Yield": {"WHEAT": 2.0}}, "probability": 1.0}},
+            "must be a list",
+        ),  # old dictionary-of-scenarios format
     ],
 )
 def test_scenario_format_validation(advanced_model, bad_scenarios, expected_msg):
@@ -612,3 +632,30 @@ def test_acvmrp_variance_reduction_compares_estimator_variances(facilityloc_ense
     expected_factor = 1.0 / (1.0 - (rho_hat**2) * M / (m + M))
 
     assert results["variance_reduction_factor"] == pytest.approx(expected_factor)
+
+
+def test_sampled_scenario_metadata(advanced_model):
+    """
+    Sampled scenarios record 'Original_ID' and 'Population_Index' in the
+    scenario dictionary (not in its 'data'), and build_model_data() removes
+    this metadata before the batch is passed to SPAROW.
+    """
+    population = advanced_model.scenario_population().scenarios()
+    sampled = advanced_model.scenario_sampler().draw_scenarios(n=5, replication_id=0)
+
+    assert [scen["ID"] for scen in sampled] == [f"rep0_scen{i}" for i in range(5)]
+    for scen in sampled:
+        original = population[scen["Population_Index"]]
+        assert scen["Original_ID"] == original["ID"]
+        assert scen["Original_ID"] == f"scen_{scen['Population_Index']}"
+        assert "Original_ID" not in scen["data"]
+        assert "Population_Index" not in scen["data"]
+        assert scen["data"] == original["data"]
+
+    model_data = advanced_model.build_model_data(sampled)
+    assert [scen["ID"] for scen in model_data["scenarios"]] == [
+        scen["ID"] for scen in sampled
+    ]
+    for scen, sampled_scen in zip(model_data["scenarios"], sampled):
+        assert set(scen.keys()) == {"ID", "data", "probability"}
+        assert scen["probability"] == sampled_scen["probability"]

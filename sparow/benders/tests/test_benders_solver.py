@@ -72,7 +72,7 @@ class TestBenders_NonPersistent:
         a_val = 1
         model_data = {
             "scenarios": [
-                {"ID": 1, "LB": None, "UB": None},
+                dict(ID=1, data={"LB": None, "UB": None}),
             ],
         }
         app_data = dict(a=a_val, c=0, L=1, R=1)
@@ -99,7 +99,7 @@ class TestBenders_NonPersistent:
         for a_val in a_vals:
             model_data = {
                 "scenarios": [
-                    {"ID": 1, "LB": None, "UB": None},
+                    dict(ID=1, data={"LB": None, "UB": None}),
                 ],
             }
             app_data = dict(a=a_val, c=0, L=1, R=1)
@@ -441,7 +441,7 @@ class TestBenders_Persistent:
         a_val = 1
         model_data = {
             "scenarios": [
-                {"ID": 1, "LB": None, "UB": None},
+                dict(ID=1, data={"LB": None, "UB": None}),
             ],
         }
         app_data = dict(a=a_val, c=0, L=1, R=1)
@@ -472,7 +472,7 @@ class TestBenders_Persistent:
         for a_val in a_vals:
             model_data = {
                 "scenarios": [
-                    {"ID": 1, "LB": None, "UB": None},
+                    dict(ID=1, data={"LB": None, "UB": None}),
                 ],
             }
             app_data = dict(a=a_val, c=0, L=1, R=1)
