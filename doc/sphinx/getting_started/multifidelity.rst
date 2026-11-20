@@ -51,8 +51,8 @@ standard list format:
        ],
    }
 
-   sp.initialize_model(name="HF", model_data=hf_data, model_builder=hf_builder)
-   sp.initialize_model(name="LF", model_data=lf_data, model_builder=lf_builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=hf_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=lf_builder, default=False)
 
 After the models are initialized, `sp.scenario_data` contains the scenarios
 of all models, indexed by model name and scenario ID.  This is the data that
@@ -192,18 +192,18 @@ To create a multifidelity stochastic program:
    sp = stochastic_program(first_stage_variables=["x"])
 
    # Step 2: Initialize with HF model
-   sp.initialize_application(app_data=app_data)
-   sp.initialize_model(
+   sp.configure(common_data=common_data)
+   sp.add_scenarios(
        name="HF",
-       model_data=hf_data,
-       model_builder=hf_builder
+       data=hf_data,
+       scenario_builder=hf_builder
    )
 
    # Step 3: Add LF model
-   sp.initialize_model(
+   sp.add_scenarios(
        name="LF",
-       model_data=lf_data,
-       model_builder=lf_builder,
+       data=lf_data,
+       scenario_builder=lf_builder,
        default=False  # Not the default model
    )
 
@@ -288,7 +288,7 @@ Newsvendor Problem
    from sparow.sp.bundling.MF_schemes import mf_kmeans_similar
 
    # Application data (shared by both models)
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
    # High-fidelity model with detailed scenarios
    hf_data = {
@@ -308,11 +308,11 @@ Newsvendor Problem
 
    # Create multifidelity stochastic program
    sp = stochastic_program(first_stage_variables=["x"])
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
    # Initialize models
-   sp.initialize_model(name="HF", model_data=hf_data, model_builder=builder)
-   sp.initialize_model(name="LF", model_data=lf_data, model_builder=builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=builder, default=False)
 
    # Use multifidelity bundling
    bundles = mf_kmeans_similar(
@@ -346,9 +346,9 @@ Facility Location Problem
 
    # Create multifidelity program
    sp = stochastic_program(first_stage_variables=["x1", "x2", "x3"])
-   sp.initialize_application(app_data=facility_data)
-   sp.initialize_model(name="HF", model_data=hf_data, model_builder=facility_builder)
-   sp.initialize_model(name="LF", model_data=lf_data, model_builder=facility_builder, default=False)
+   sp.configure(common_data=facility_data)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=facility_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=facility_builder, default=False)
 
    # Use paired bundling for direct correspondence
    bundles = mf_paired(sp.scenario_data, models=["HF", "LF"])
@@ -382,11 +382,11 @@ Start with LF models and adaptively refine with HF:
 .. code-block:: python
 
    # Phase 1: Solve with LF only
-   sp.initialize_model(name="LF", model_data=lf_data, model_builder=lf_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=lf_builder)
    solver.solve(sp)  # Fast, approximate solution
 
    # Phase 2: Add HF and refine
-   sp.initialize_model(name="HF", model_data=hf_data, model_builder=hf_builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=hf_builder, default=False)
    bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "LF"],
                                bundle_args={'data_key': 'd'})
    sp.set_bundles(bundles)
@@ -422,7 +422,7 @@ Use more than two fidelity levels:
 .. code-block:: python
 
    # Add medium-fidelity model
-   sp.initialize_model(name="MF", model_data=mf_data, model_builder=mf_builder, default=False)
+   sp.add_scenarios(name="MF", data=mf_data, scenario_builder=mf_builder, default=False)
 
    # Bundle all three levels
    bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "MF", "LF"],

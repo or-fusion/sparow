@@ -170,7 +170,7 @@ class TestBendersTransforms:
         solver = BendersSolver()
         solver.set_options(solver=solver, subproblem_solver=solver)
 
-        model_data = {
+        scenario_data = {
             "scenarios": [
                 dict(ID=1, data={"LB": None, "UB": None}),
             ],
@@ -179,9 +179,9 @@ class TestBendersTransforms:
         removal_options = [True, False]
         for c in c_values:
             for r_option in removal_options:
-                app_data = dict(a=0, c=c, L=1, R=1)
+                common_data = dict(a=0, c=c, L=1, R=1)
                 app = adjustable_absolute_value(
-                    local_app_data=app_data, local_model_data=model_data
+                    local_common_data=common_data, local_scenario_data=scenario_data
                 )
                 sp = app.sp
                 b = next(iter(sp.bundles))
@@ -197,8 +197,8 @@ class TestBendersTransforms:
                 assert split.constant == pytest.approx(0)
                 assert compare_expressions(
                     split.not_in_set,
-                    app_data["R"] * m.s[None, 1].y["Right"]
-                    + app_data["L"] * m.s[None, 1].y["Left"],
+                    common_data["R"] * m.s[None, 1].y["Right"]
+                    + common_data["L"] * m.s[None, 1].y["Left"],
                 )
                 if r_option:
                     assert split.in_set == pytest.approx(0)
@@ -216,7 +216,7 @@ class TestBendersTransforms:
         sp_lower = app.sp
         sp_upper = BendersSolver._create_sp_upper(sp_lower=sp_lower)
         test_a_val = 1
-        sp_upper.app_data["a"] = test_a_val
+        sp_upper.common_data["a"] = test_a_val
 
         # default behavior check for sp_lower
         solver = ExtensiveFormSolver()
@@ -360,7 +360,7 @@ class TestBendersTransforms:
         solver = BendersSolver()
         solver.set_options(solver=solver, subproblem_solver=solver)
         constant_offset = 10
-        model_data = {
+        scenario_data = {
             "scenarios": [
                 dict(
                     ID=1,
@@ -370,9 +370,9 @@ class TestBendersTransforms:
         }
         c_vals = [0, 1, -3, 4]
         for c in c_vals:
-            app_data = dict(a=0, c=c, L=1, R=1)
+            common_data = dict(a=0, c=c, L=1, R=1)
             app = adjustable_absolute_value(
-                local_app_data=app_data, local_model_data=model_data
+                local_common_data=common_data, local_scenario_data=scenario_data
             )
             sp = app.sp
             assert sp.bundles is not None
@@ -469,7 +469,7 @@ class TestBendersTransforms:
         solver = BendersSolver()
         solver.set_options(solver=solver, subproblem_solver=solver)
         constant_offset = 10
-        model_data = {
+        scenario_data = {
             "scenarios": [
                 dict(
                     ID=1,
@@ -479,9 +479,9 @@ class TestBendersTransforms:
         }
         f_options = [True, False]
         for fix_second_stage_vars in f_options:
-            app_data = dict(a=0, c=1, L=1, R=1)
+            common_data = dict(a=0, c=1, L=1, R=1)
             app = adjustable_absolute_value(
-                local_app_data=app_data, local_model_data=model_data
+                local_common_data=common_data, local_scenario_data=scenario_data
             )
             sp = app.sp
             assert sp.bundles is not None

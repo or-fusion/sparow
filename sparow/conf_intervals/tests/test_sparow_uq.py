@@ -637,7 +637,7 @@ def test_acvmrp_variance_reduction_compares_estimator_variances(facilityloc_ense
 def test_sampled_scenario_metadata(advanced_model):
     """
     Sampled scenarios record 'Original_ID' and 'Population_Index' in the
-    scenario dictionary (not in its 'data'), and build_model_data() removes
+    scenario dictionary (not in its 'data'), and build_scenario_data() removes
     this metadata before the batch is passed to SPAROW.
     """
     population = advanced_model.scenario_population().scenarios()
@@ -652,10 +652,10 @@ def test_sampled_scenario_metadata(advanced_model):
         assert "Population_Index" not in scen["data"]
         assert scen["data"] == original["data"]
 
-    model_data = advanced_model.build_model_data(sampled)
-    assert [scen["ID"] for scen in model_data["scenarios"]] == [
+    scenario_data = advanced_model.build_scenario_data(sampled)
+    assert [scen["ID"] for scen in scenario_data["scenarios"]] == [
         scen["ID"] for scen in sampled
     ]
-    for scen, sampled_scen in zip(model_data["scenarios"], sampled):
+    for scen, sampled_scen in zip(scenario_data["scenarios"], sampled):
         assert set(scen.keys()) == {"ID", "data", "probability"}
         assert scen["probability"] == sampled_scen["probability"]

@@ -5,8 +5,8 @@ from sparow.sp import stochastic_program
 #
 # Data for a simple newsvendor example
 #
-app_data = dict(c=1.0, b=1.5, h=0.1)
-model_data = {
+common_data = dict(c=1.0, b=1.5, h=0.1)
+scenario_data = {
     "LF": {
         "scenarios": [
             dict(ID="1", data={"d": 15}, probability=0.1),
@@ -94,10 +94,8 @@ def HF_newsvendor():
     This model includes one additional constraint, using data values 'B' and 'C'.
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=HF_builder
-    )
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
     return Munch(
         sp=sp,
         objective_value=82.335,
@@ -116,10 +114,8 @@ def LF_newsvendor():
     https://www.epoc.org.nz/papers/ShapiroTutorialSP.pdf
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_builder
-    )
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(name="LF", data=scenario_data["LF"], scenario_builder=LF_builder)
     return Munch(
         sp=sp,
         objective_value=80.01,
@@ -135,12 +131,13 @@ def MFrandom_newsvendor():
     bundling scheme.
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=HF_builder
-    )
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_builder, default=False
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
+    sp.add_scenarios(
+        name="LF",
+        data=scenario_data["LF"],
+        scenario_builder=LF_builder,
+        default=False,
     )
     sp.initialize_bundles(
         scheme="mf_random",
@@ -158,12 +155,13 @@ def MFpaired_newsvendor():
     bundling scheme.
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=HF_builder
-    )
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_builder, default=False
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
+    sp.add_scenarios(
+        name="LF",
+        data=scenario_data["LF"],
+        scenario_builder=LF_builder,
+        default=False,
     )
     sp.initialize_bundles(scheme="mf_paired")
     return Munch(

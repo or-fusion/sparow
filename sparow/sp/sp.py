@@ -104,8 +104,8 @@ class StochasticProgram(object):
         Set of binary or integer first-stage variables.
     bundles : BundleObj or None
         Bundles for the stochastic program.
-    app_data : dict
-        Dictionary of application data.
+    common_data : dict
+        Dictionary of data common to all models and scenarios.
     model_data : dict
         Dictionary mapping model names to their data.
     scenario_data : dict
@@ -121,8 +121,8 @@ class StochasticProgram(object):
 
         # Bundles (must be initialized later)
         self.bundles: Any | None = None
-        # Dictionary of application data
-        self.app_data: dict[str, Any] = {}
+        # Dictionary of common model data.
+        self.common_data: dict = {}
         # model_data[model_name] -> data
         self.model_data: dict[str, Any] = {}
         # scenario_data[model_name][scenario_name] -> {"data": ..., "probability": ...}
@@ -134,31 +134,30 @@ class StochasticProgram(object):
         # Indicates if there are multifidelity bundles:
         self.is_multifidelity = False
 
-    def initialize_application(
+    def configure(
         self,
         *,
         filename: str | None = None,
-        app_data: dict[str, Any] | None = None,
-        **kwargs: Any,
+        common_data: dict[str, Any] | None = None,
     ) -> None:
         """
-        Initialize the application with data.
+        Configure the stochastic program with data common to all models and scenarios.
 
         Parameters
         ----------
         filename : str, optional
-            Path to a JSON file containing application data.
-        app_data : dict, optional
-            Dictionary containing application data.
+            Path to a JSON file containing common data.
+        common_data : dict, optional
+            Dictionary containing data common to all models and scenarios.
         **kwargs : dict
             Additional keyword arguments.
         """
         self._timing = {}
         if filename is not None:
             with open(f"{filename}", "r") as file:
-                self.app_data = json.load(file)
-        elif app_data is not None:
-            self.app_data = app_data
+                self.common_data = json.load(file)
+        elif common_data is not None:
+            self.common_data = common_data
 
     def get_timing(self, model):
         return self._timing.get(id(model), dict())

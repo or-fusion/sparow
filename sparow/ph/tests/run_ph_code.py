@@ -107,7 +107,7 @@ ph = PH(options, all_scenario_names, scenario_creator)
 results = ph.ph_main()
 
 
-def model_builder(app_dta, scen, scen_args):
+def scenario_builder(common_data, scen, scen_args):
     model = pyo.ConcreteModel(scen["ID"])
     if scen["ID"] == "BelowAverageScenario":
         yields = [2, 2.4, 16]
@@ -161,10 +161,10 @@ def model_builder(app_dta, scen, scen_args):
 
 
 FarmerSP = stochastic_program(
-    first_stage_variables=["X[*]"], model_builder=model_builder
+    first_stage_variables=["X[*]"], scenario_builder=scenario_builder
 )
 
-model_data = {
+scenario_data = {
     "scenarios": [
         dict(
             ID="BelowAverageScenario",
@@ -194,6 +194,6 @@ model_data = {
 }
 
 
-FarmerSP.initialize_model(model_data=model_data)
+FarmerSP.add_scenarios(data=scenario_data)
 ph = ProgressiveHedgingSolver()
 ph.solve(FarmerSP, max_iterations=10, solver="gurobi", loglevel="DEBUG", rho=10)
