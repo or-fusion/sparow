@@ -95,9 +95,7 @@ def HF_newsvendor():
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.add_scenarios(
-        name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
-    )
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
     return Munch(
         sp=sp,
         objective_value=82.335,
@@ -117,9 +115,7 @@ def LF_newsvendor():
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.add_scenarios(
-        name="LF", data=scenario_data["LF"], scenario_builder=LF_builder
-    )
+    sp.add_scenarios(name="LF", data=scenario_data["LF"], scenario_builder=LF_builder)
     return Munch(
         sp=sp,
         objective_value=80.01,
@@ -136,9 +132,7 @@ def MFrandom_newsvendor():
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.add_scenarios(
-        name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
-    )
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
     sp.add_scenarios(
         name="LF",
         data=scenario_data["LF"],
@@ -162,9 +156,7 @@ def MFpaired_newsvendor():
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.add_scenarios(
-        name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
-    )
+    sp.add_scenarios(name="HF", data=scenario_data["HF"], scenario_builder=HF_builder)
     sp.add_scenarios(
         name="LF",
         data=scenario_data["LF"],

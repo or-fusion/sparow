@@ -209,23 +209,17 @@ class TestScenarioFormat(object):
 
     def test_scenario_without_data(self):
         sp = stochastic_program(first_stage_variables=["x"])
-        sp.add_scenarios(
-            data={"scenarios": [{"ID": 1, "probability": 1.0}]}
-        )
+        sp.add_scenarios(data={"scenarios": [{"ID": 1, "probability": 1.0}]})
         assert sp.scenario_data[None] == {1: {"data": {}, "probability": 1.0}}
 
     def test_dict_of_scenarios_is_an_error(self):
         sp = stochastic_program(first_stage_variables=["x"])
         with pytest.raises(TypeError, match="must be specified with a list"):
-            sp.add_scenarios(
-                data={"scenarios": {1: {"data": {"d": 15}}}}
-            )
+            sp.add_scenarios(data={"scenarios": {1: {"data": {"d": 15}}}})
 
     def test_scenario_order_is_preserved(self):
         sp = stochastic_program(first_stage_variables=["x"])
-        sp.add_scenarios(
-            data={"scenarios": [{"ID": "b"}, {"ID": "a"}, {"ID": "c"}]}
-        )
+        sp.add_scenarios(data={"scenarios": [{"ID": "b"}, {"ID": "a"}, {"ID": "c"}]})
         assert list(sp.scenario_data[None].keys()) == ["b", "a", "c"]
 
     def test_missing_ID_is_an_error(self):

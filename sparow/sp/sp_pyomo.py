@@ -472,7 +472,6 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             with open(f"{filename}", "r") as file:
                 data = json.load(file)
 
-        
         if data is not None:
             self.model_data[name] = data.get("data", {})
             self.scenario_data[name] = validate_scenarios(
