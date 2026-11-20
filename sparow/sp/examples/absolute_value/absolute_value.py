@@ -192,7 +192,9 @@ def simple_absolute_value():
 def feasibility_included_absolute_value():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=modified_common_data)
-    sp.configure_scenarios(scenario_data=modified_scenario_data, scenario_builder=builder)
+    sp.configure_scenarios(
+        scenario_data=modified_scenario_data, scenario_builder=builder
+    )
     return Munch(
         sp=sp,
         objective_value=0,
@@ -206,7 +208,9 @@ def feasibility_included_absolute_value():
 def absolute_value_testing_version():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder_testing)
+    sp.configure_scenarios(
+        scenario_data=scenario_data, scenario_builder=builder_testing
+    )
     return Munch(
         sp=sp,
         objective_value=0,

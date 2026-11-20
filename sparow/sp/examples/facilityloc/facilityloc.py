@@ -263,7 +263,10 @@ def MFrandom_facilityloc():
         name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
     )
     sp.configure_scenarios(
-        name="LF", scenario_data=scenario_data["LF"], scenario_builder=LF_builder, default=False
+        name="LF",
+        scenario_data=scenario_data["LF"],
+        scenario_builder=LF_builder,
+        default=False,
     )
     sp.initialize_bundles(
         scheme="mf_random",

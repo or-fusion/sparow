@@ -26,7 +26,11 @@ class TestFacilityLoc:
 
     def test_facilityloc_old(self, mip_solver):
         common_data = {"n": 3, "t": 4}  # number of facilities & customers
-        common_data["f"] = [400000, 200000, 600000]  # fixed costs for opening facilities
+        common_data["f"] = [
+            400000,
+            200000,
+            600000,
+        ]  # fixed costs for opening facilities
         common_data["c"] = [
             [5739.725, 6539.725, 8650.40, 22372.1125],
             [6055.05, 6739.055, 8050.40, 21014.225],

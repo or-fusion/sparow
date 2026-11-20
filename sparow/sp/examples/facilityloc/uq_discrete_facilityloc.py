@@ -49,7 +49,14 @@ common_data["c"] = [
     [9000.0, 9400.0, 9100.0, 9600.0],  # facility 5 is expensive
 ]  # servicing costs
 common_data["k"] = [2500, 2500, 2500, 2500, 2500, 2500]  # facility capacity
-common_data["s"] = [2, 2, 2, 2, 2, 2]  # max number of customers each facility can service
+common_data["s"] = [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+]  # max number of customers each facility can service
 common_data["a"] = [
     [3900.0, 5000.0, 12000.0, 17000.0],
     [4300.0, 4700.0, 11400.0, 16800.0],

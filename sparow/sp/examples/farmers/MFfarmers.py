@@ -626,7 +626,9 @@ def LF_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
     sp.configure(common_data=common_data)
     sp.configure_scenarios(
-        name="LF", scenario_data=scenario_data["LF"], scenario_builder=LF_scenario_builder
+        name="LF",
+        scenario_data=scenario_data["LF"],
+        scenario_builder=LF_scenario_builder,
     )
     return Munch(sp=sp)
 

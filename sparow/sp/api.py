@@ -4,9 +4,7 @@ from .sp_pyomo import (
 )
 
 
-def stochastic_program(
-    *, first_stage_variables=None
-):
+def stochastic_program(*, first_stage_variables=None):
     """
     Create a stochastic program using the specified modeling framework.
 
