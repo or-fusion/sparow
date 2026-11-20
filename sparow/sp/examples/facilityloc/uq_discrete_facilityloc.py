@@ -27,12 +27,12 @@ FACILITY LOCATION
         - Constraint ensuring logic between z and y is taken out so that y takes on continuous values
 * Scenarios are generated using linear interpolation between low and high demand values for each city, 
   creating a discrete uniform distribution over all resulting scenarios
-* The number of scenarios is controlled by the shell script's N parameter, not by app_data
+* The number of scenarios is controlled by the shell script's N parameter, not by common_data
 * You can run this file as a script to write the full scenario population to a .json or .npy file
 """
 
-app_data = {"n": 6, "t": 4}  # number of facilities & customers
-app_data["f"] = [
+common_data = {"n": 6, "t": 4}  # number of facilities & customers
+common_data["f"] = [
     260000,
     275000,
     270000,
@@ -40,7 +40,7 @@ app_data["f"] = [
     320000,
     340000,
 ]  # fixed costs for opening facilities (facility 4 and facility 5 are expensive)
-app_data["c"] = [
+common_data["c"] = [
     [4200.0, 5200.0, 12500.0, 18000.0],  # facility 0 good for cust 0,1
     [4600.0, 4800.0, 11800.0, 17500.0],  # facility 1 also good for cust 0,1
     [12800.0, 12000.0, 4100.0, 5600.0],  # facility 2 good for cust 2,3
@@ -48,9 +48,9 @@ app_data["c"] = [
     [7600.0, 7900.0, 7800.0, 8200.0],  # facility 4 is expensive
     [9000.0, 9400.0, 9100.0, 9600.0],  # facility 5 is expensive
 ]  # servicing costs
-app_data["k"] = [2500, 2500, 2500, 2500, 2500, 2500]  # facility capacity
-app_data["s"] = [2, 2, 2, 2, 2, 2]  # max number of customers each facility can service
-app_data["a"] = [
+common_data["k"] = [2500, 2500, 2500, 2500, 2500, 2500]  # facility capacity
+common_data["s"] = [2, 2, 2, 2, 2, 2]  # max number of customers each facility can service
+common_data["a"] = [
     [3900.0, 5000.0, 12000.0, 17000.0],
     [4300.0, 4700.0, 11400.0, 16800.0],
     [12200.0, 11600.0, 3900.0, 5200.0],
@@ -64,7 +64,7 @@ BASE_DIR = Path(__file__).resolve().parent  # path to directory that contains th
 bigM_path = BASE_DIR / "bigM.txt"
 with open(bigM_path, "r") as file:  # read in big-M value from bigM.txt
     bigM_str = file.read()
-app_data["bigM"] = float(bigM_str)
+common_data["bigM"] = float(bigM_str)
 
 
 # ==== SCENARIO DATA ===========================================================
@@ -321,11 +321,11 @@ def get_sp_model_for_uq(
     """
     if model_name == "HF":
         scenario_data = scenario_data_by_model["HF"]
-        model_builder = HF_builder
+        scenario_builder = HF_builder
         fidelity = "high"
     elif model_name == "LF":
         scenario_data = scenario_data_by_model["LF"]
-        model_builder = LF_builder
+        scenario_builder = LF_builder
         fidelity = "low"
     else:
         raise ValueError(f"Unknown facility location model_name: {model_name}")
@@ -347,15 +347,15 @@ def get_sp_model_for_uq(
     )
 
     first_stage_vars = ["x"]
-    first_stage_order = [f"x[{i}]" for i in range(app_data["n"])]
+    first_stage_order = [f"x[{i}]" for i in range(common_data["n"])]
 
     model = SPModelWrapperforUQ(
         name=model_name,
         fidelity=fidelity,
         scenario_population=scenario_population,
         scenario_sampler=scenario_sampler,
-        model_builder=model_builder,
-        app_data=app_data,
+        scenario_builder=scenario_builder,
+        common_data=common_data,
         first_stage_variables=first_stage_vars,
         first_stage_variable_order=first_stage_order,
     )

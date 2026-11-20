@@ -25,14 +25,14 @@ Note that this test just ensures our extensive form solution matches AMPL's!! It
 class TestFacilityLoc:
 
     def test_facilityloc_old(self, mip_solver):
-        app_data = {"n": 3, "t": 4}  # number of facilities & customers
-        app_data["f"] = [400000, 200000, 600000]  # fixed costs for opening facilities
-        app_data["c"] = [
+        common_data = {"n": 3, "t": 4}  # number of facilities & customers
+        common_data["f"] = [400000, 200000, 600000]  # fixed costs for opening facilities
+        common_data["c"] = [
             [5739.725, 6539.725, 8650.40, 22372.1125],
             [6055.05, 6739.055, 8050.40, 21014.225],
             [8650.40, 7539.055, 4539.72, 15024.325],
         ]  # servicing costs
-        app_data["k"] = [1550, 650, 1750]  # facility capacity
+        common_data["k"] = [1550, 650, 1750]  # facility capacity
 
         customer_demand = {
             "San_Antonio_TX": [450, 650, 887],
@@ -68,7 +68,7 @@ class TestFacilityLoc:
                 )
             )
 
-        model_data = {"HF": {"scenarios": LFscens}}
+        scenario_data = {"HF": {"scenarios": LFscens}}
 
         def HF_builder(data, args):
             n = data["n"]
@@ -127,9 +127,9 @@ class TestFacilityLoc:
             return model
 
         sp = stochastic_program(first_stage_variables=["x"])
-        sp.initialize_application(app_data=app_data)
-        sp.initialize_model(
-            name="HF", model_data=model_data["HF"], model_builder=HF_builder
+        sp.configure(common_data=common_data)
+        sp.configure_scenarios(
+            name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
         )
         solver = ExtensiveFormSolver()
         solver.set_options(solver=mip_solver)

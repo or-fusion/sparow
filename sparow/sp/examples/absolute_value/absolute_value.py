@@ -5,22 +5,22 @@ from sparow.sp import stochastic_program
 #
 # Data for a simple modified absolute value example
 #
-app_data = dict(a=0, c=0, L=1, R=1)
-model_data = {
+common_data = dict(a=0, c=0, L=1, R=1)
+scenario_data = {
     "scenarios": [
         dict(ID=1, data={"LB": None, "UB": None}),
     ],
 }
 
-modified_app_data_example = dict(a=3, c=0, L=1, R=1, LB=-5, UB=5)
-modified_model_data_example = {
+modified_common_data_example = dict(a=3, c=0, L=1, R=1, LB=-5, UB=5)
+modified_scenario_data_example = {
     "scenarios": [
         dict(ID=1, data={"LB": -5, "UB": 5}),
     ],
 }
 
-modified_app_data = dict(a=3, c=0, L=1, R=1)
-modified_model_data = {
+modified_common_data = dict(a=3, c=0, L=1, R=1)
+modified_scenario_data = {
     "scenarios": [
         dict(ID=1, data={"LB": -5, "UB": 5}),
     ],
@@ -177,55 +177,55 @@ def simple_absolute_value():
     Corresponding to extreme rays [0, -1, 0]' and [0, 0, -1]
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(model_data=model_data, model_builder=builder)
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=0,
         unique_solution=True,
         solution_values={
-            "x": app_data["a"],
+            "x": common_data["a"],
         },
     )
 
 
 def feasibility_included_absolute_value():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=modified_app_data)
-    sp.initialize_model(model_data=modified_model_data, model_builder=builder)
+    sp.configure(common_data=modified_common_data)
+    sp.configure_scenarios(scenario_data=modified_scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=0,
         unique_solution=True,
         solution_values={
-            "x": modified_app_data["a"],
+            "x": modified_common_data["a"],
         },
     )
 
 
 def absolute_value_testing_version():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(model_data=model_data, model_builder=builder_testing)
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder_testing)
     return Munch(
         sp=sp,
         objective_value=0,
         unique_solution=True,
         solution_values={
-            "x": app_data["a"],
+            "x": common_data["a"],
         },
     )
 
 
-def adjustable_absolute_value(*, local_app_data, local_model_data):
+def adjustable_absolute_value(*, local_common_data, local_scenario_data):
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=local_app_data)
-    sp.initialize_model(model_data=local_model_data, model_builder=builder)
+    sp.configure(common_data=local_common_data)
+    sp.configure_scenarios(scenario_data=local_scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=0,
         unique_solution=True,
         solution_values={
-            "x": app_data["a"],
+            "x": common_data["a"],
         },
     )

@@ -126,7 +126,7 @@ Advanced_scendata = AdvancedScen_object.scenario_generator()
 # ==== COMMON FARMERS MODEL BUILDER ============================================
 
 
-def model_builder(data, args):
+def scenario_builder(data, args):
     """
     Common model builder for both Basic and Advanced farmers.
 
@@ -273,8 +273,8 @@ def model_builder(data, args):
 
 
 # ==== MODEL DATA ===============================================================
-app_data = {}
-model_data = {
+common_data = {}
+scenario_data = {
     "Basic": Basic_scendata,
     "Advanced": Advanced_scendata,
 }
@@ -284,22 +284,22 @@ model_data = {
 
 def Basic_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
         name="Basic",
-        model_data=model_data["Basic"],
-        model_builder=model_builder,
+        scenario_data=scenario_data["Basic"],
+        scenario_builder=scenario_builder,
     )
     return sp
 
 
 def Advanced_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
         name="Advanced",
-        model_data=model_data["Advanced"],
-        model_builder=model_builder,
+        scenario_data=scenario_data["Advanced"],
+        scenario_builder=scenario_builder,
     )
     return sp
 
@@ -355,8 +355,8 @@ def get_sp_model_for_uq(
     )
 
     # The underlying farmer model can optionally use integer first-stage variables.
-    local_app_data = dict(app_data)
-    local_app_data["use_integer"] = use_integer
+    local_common_data = dict(common_data)
+    local_common_data["use_integer"] = use_integer
 
     first_stage_vars = ["DevotedAcreage[*]"]
     first_stage_order = [
@@ -370,8 +370,8 @@ def get_sp_model_for_uq(
         fidelity="high",  # single-fidelity case, so treat this as the primary model
         scenario_population=scenario_population,
         scenario_sampler=scenario_sampler,
-        model_builder=model_builder,
-        app_data=local_app_data,
+        scenario_builder=scenario_builder,
+        common_data=local_common_data,
         first_stage_variables=first_stage_vars,
         first_stage_variable_order=first_stage_order,
     )

@@ -11,7 +11,7 @@ CAPACITATED FACILITY LOCATION
         - LF scenarios are restricted to Low, Medium, and High
     - HF model is a MIP (first-stage binary variables, second-stage continuous variables)
         - HF scenarios can be Low, Medium, and High for each customer (e.g., ['Low', 'High', 'Low', 'Medium'])
-* Can specify number of HF scenarios by including "num_HF" key in app_data; otherwise, defaults to 8
+* Can specify number of HF scenarios by including "num_HF" key in common_data; otherwise, defaults to 8
 * Problem data adapted from https://ampl.com/colab/notebooks/ampl-development-tutorial-26-stochastic-capacitated-facility-location-problem.html#problem-description
 
 N.B. the AMPL example satisfies relatively complete recourse (RCR) but not complete recourse (CR) with First Stage Variables as x
@@ -23,14 +23,14 @@ RCR is only guaranteed in case 2, case 1 is how the Benders code works.
 CR not satiesfied, let x be a vector of all negative 1's and second stage infeasible
 """
 
-app_data = {"n": 3, "t": 4}  # number of facilities & customers
-app_data["f"] = [400000, 200000, 600000]  # fixed costs for opening facilities
-app_data["c"] = [
+common_data = {"n": 3, "t": 4}  # number of facilities & customers
+common_data["f"] = [400000, 200000, 600000]  # fixed costs for opening facilities
+common_data["c"] = [
     [5739.725, 6539.725, 8650.40, 22372.1125],
     [6055.05, 6739.055, 8050.40, 21014.225],
     [8650.40, 7539.055, 4539.72, 15024.325],
 ]  # servicing costs
-app_data["k"] = [1550, 650, 1750]  # facility capacity
+common_data["k"] = [1550, 650, 1750]  # facility capacity
 
 customer_demand = {
     "San_Antonio_TX": [450, 650, 887],
@@ -67,7 +67,7 @@ LF_scenarios = [
 ]
 random.seed(58564564871312356)
 HF_scenarios = random.choices(
-    list(sdict.keys()), k=app_data.get("num_HF", 8)
+    list(sdict.keys()), k=common_data.get("num_HF", 8)
 )  # randomly select HF scenarios from sdict
 
 LFscens = []  # list of LF scenarios
@@ -112,7 +112,7 @@ for hscen in HFscens:
 HFscens = list({hscen["ID"]: hscen for hscen in HFscens}.values())
 
 
-model_data = {"LF": {"scenarios": LFscens}, "HF": {"scenarios": HFscens}}
+scenario_data = {"LF": {"scenarios": LFscens}, "HF": {"scenarios": HFscens}}
 
 
 def LF_builder(data, args):
@@ -220,50 +220,50 @@ def HF_builder(data, args):
 
 def AMPL_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["LF"], model_builder=HF_builder
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
+        name="HF", scenario_data=scenario_data["LF"], scenario_builder=HF_builder
     )
     return Munch(sp=sp, objective_value=16758018.59625)
 
 
 def AMPL_facilityloc_Benders_Test():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
         # name="HF",
-        model_data=model_data["LF"],
-        model_builder=HF_builder,
+        scenario_data=scenario_data["LF"],
+        scenario_builder=HF_builder,
     )
     return Munch(sp=sp, objective_value=16758018.59625)
 
 
 def HF_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=HF_builder
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
+        name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
     )
     return Munch(sp=sp)
 
 
 def LF_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_builder
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
+        name="LF", scenario_data=scenario_data["LF"], scenario_builder=LF_builder
     )
     return Munch(sp=sp)
 
 
 def MFrandom_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=HF_builder
+    sp.configure(common_data=common_data)
+    sp.configure_scenarios(
+        name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
     )
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_builder, default=False
+    sp.configure_scenarios(
+        name="LF", scenario_data=scenario_data["LF"], scenario_builder=LF_builder, default=False
     )
     sp.initialize_bundles(
         scheme="mf_random",

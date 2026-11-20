@@ -19,8 +19,8 @@ def sp0():
         return M
 
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}]))
+    sp.configure_scenarios(scenario_builder=builder)
+    sp.configure_scenarios(scenario_data=dict(scenarios=[{"ID": 1}]))
     return sp
 
 
@@ -36,8 +36,8 @@ def sp1():
         return M
 
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_model(model_builder=builder)
-    sp.initialize_model(model_data=dict(scenarios=[{"ID": 1}]))
+    sp.configure_scenarios(scenario_builder=builder)
+    sp.configure_scenarios(scenario_data=dict(scenarios=[{"ID": 1}]))
     return sp
 
 
@@ -51,9 +51,9 @@ def sp2():
         return M
 
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_model(model_builder=builder)
-    sp.initialize_model(
-        model_data={
+    sp.configure_scenarios(scenario_builder=builder)
+    sp.configure_scenarios(
+        scenario_data={
             "scenarios": [
                 {"ID": 1},
                 {"ID": 2},
@@ -74,9 +74,9 @@ def sp3():
         return M
 
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_model(model_builder=builder)
-    sp.initialize_model(
-        model_data={
+    sp.configure_scenarios(scenario_builder=builder)
+    sp.configure_scenarios(
+        scenario_data={
             "scenarios": [
                 {"ID": 1},
                 {"ID": 2},

@@ -411,7 +411,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         List of string names of first-stage variables.
     objective : str or None
         Name of the objective function.
-    model_builder : dict
+    scenario_builder : dict
         Dictionary mapping model names to their builder functions.
     """
 
@@ -422,22 +422,22 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         #   [ "x", "b.y", "b[*].z[*,*]" ]
         #
         self.first_stage_variables = first_stage_variables
-        # WEH - We may have different objectives for different model_builders?
+        # WEH - We may have different objectives for different scenario_builders?
         self.objective: str | None = None
-        self.model_builder: dict = {}
+        self.scenario_builder: dict = {}
 
-    def initialize_model(
+    def configure_scenarios(
         self,
         *,
         name: str | None = None,
         filename: str | None = None,
-        model_data: dict | None = None,
-        model_builder: Any | None = None,
+        scenario_data: dict | None = None,
+        scenario_builder: Any | None = None,
         default: bool = True,
         **kwargs: Any,
     ) -> None:
         """
-        Initialize a model with data and builder function.
+        Configure the scenarios of a model with data and a scenario builder function.
 
         Parameters
         ----------
@@ -445,15 +445,15 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             Name of the model.
         filename : str, optional
             Path to a JSON file containing model data.
-        model_data : dict, optional
-            Dictionary containing model data.  The optional "data" key
+        scenario_data : dict, optional
+            Dictionary containing model and scenario data.  The optional "data" key
             maps to model-level data, and the "scenarios" key maps to a
             list of scenario specifications:
             ``{"data": {...}, "scenarios": [{"ID": ID, "data": {...}, "probability": p}, ...]}``.
             The "data" and "probability" keys are optional.  The scenario ID is passed to
-            the model builder as ``data["ID"]``.
-        model_builder : function, optional
-            Function to build the model.
+            the scenario builder as ``data["ID"]``.
+        scenario_builder : function, optional
+            Function to build the model for a scenario.
         default : bool, optional
             Whether this is the default model (default is True).
         **kwargs : dict
@@ -464,25 +464,25 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
 
         if filename is not None:
             with open(f"{filename}", "r") as file:
-                model_data = json.load(file)
+                scenario_data = json.load(file)
 
         if name in self.model_data:
             if name is not None:
                 logger.warning(
                     f"Initializing model with name '{name}', which already has been initialized!  This may be a bug in the setup of this StochasticProgram instance."
                 )
-        if model_data is not None:
-            self.model_data[name] = model_data.get("data", {})
+        if scenario_data is not None:
+            self.model_data[name] = scenario_data.get("data", {})
             self.scenario_data[name] = validate_scenarios(
-                model_data.get("scenarios", []), name
+                scenario_data.get("scenarios", []), name
             )
         else:
             self.model_data[name] = {}
             self.scenario_data[name] = {}
 
-        if model_builder is not None:
-            self.model_builder[name] = model_builder
-        if model_data is not None and default:
+        if scenario_builder is not None:
+            self.scenario_builder[name] = scenario_builder
+        if scenario_data is not None and default:
             self.set_bundles(
                 initialize_bundles(
                     models=[name],
@@ -561,7 +561,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             If data keys are already specified.
         """
         model_name, scenario = scenario_tuple
-        data = copy.copy(self.app_data)
+        data = copy.copy(self.common_data)
         for k, v in self.model_data.get(model_name, {}).items():
             assert k not in data, f"Model data for {k} has already been specified!"
             data[k] = v
@@ -571,7 +571,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             data[k] = v
         assert "ID" not in data, f"The data key 'ID' is reserved for the scenario ID"
         data["ID"] = scenario
-        return self.model_builder[model_name](data, {})
+        return self.scenario_builder[model_name](data, {})
 
     def get_objective_coef(self, v: int, cached: bool = False) -> float:
         """

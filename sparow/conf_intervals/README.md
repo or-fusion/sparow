@@ -47,7 +47,7 @@ population = FiniteScenarioPopulation(
 )
 ```
 
-Sampled scenario batches use the same format. A batch drawn for replication `r` has scenario IDs `rep<r>_scen<i>`, each with probability `1/n`. Each sampled scenario also has `"Original_ID"` and `"Population_Index"` keys, which identify the population scenario it was drawn from. These metadata keys are removed by `build_model_data()` before the batch is passed to SPAROW.
+Sampled scenario batches use the same format. A batch drawn for replication `r` has scenario IDs `rep<r>_scen<i>`, each with probability `1/n`. Each sampled scenario also has `"Original_ID"` and `"Population_Index"` keys, which identify the population scenario it was drawn from. These metadata keys are removed by `build_scenario_data()` before the batch is passed to SPAROW.
 
 ## Minimal usage: Standard MRP
 

@@ -29,8 +29,8 @@ The newsvendor example demonstrates the standard Sparow workflow for setting up 
 2. **Define model data** - Scenario-specific data
 3. **Create builder function** - Returns a Pyomo model for a single scenario
 4. **Create stochastic program** - Using `stochastic_program()`
-5. **Initialize application** - Using `initialize_application()`
-6. **Initialize model** - Using `initialize_model()`
+5. **Configure common data** - Using `configure()`
+6. **Configure scenarios** - Using `configure_scenarios()`
 
 Let's examine each step in detail:
 
@@ -42,7 +42,7 @@ Application data contains the problem parameters that are constant across all sc
 .. code-block:: python
 
    # Data for a simple newsvendor example
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
 Here:
 - `c=1.0`: Purchase cost per unit
@@ -58,7 +58,7 @@ Model data defines the scenario-specific information:
 
 .. code-block:: python
 
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}},
            {"ID": 2, "data": {"d": 60}},
@@ -86,7 +86,7 @@ The builder function creates a Pyomo model for a single scenario:
        Parameters
        ----------
        data : dict
-           Scenario-specific data (includes app_data and scenario data)
+           Scenario-specific data (includes common_data and scenario data)
        args : dict
            Additional arguments
 
@@ -136,24 +136,24 @@ The `first_stage_variables` parameter specifies which variables are first-stage 
 Step 5: Initialize Application
 ------------------------------
 
-Use `initialize_application()` to set up the application data:
+Use `configure()` to set up the common data:
 
 .. code-block:: python
 
    # Initialize with application data
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
 This loads the problem parameters into the stochastic program.
 
 Step 6: Initialize Model
 ------------------------
 
-Use `initialize_model()` to set up the model data and builder:
+Use `configure_scenarios()` to set up the scenario data and builder:
 
 .. code-block:: python
 
    # Initialize with model data and builder function
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
 
 This completes the setup by:
 - Loading scenario data
@@ -173,10 +173,10 @@ Here's the complete newsvendor example showing all steps:
    from sparow.sp import stochastic_program
 
    # Step 1: Application data
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
    # Step 2: Model data
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}},
            {"ID": 2, "data": {"d": 60}},
@@ -205,10 +205,10 @@ Here's the complete newsvendor example showing all steps:
    sp = stochastic_program(first_stage_variables=["x"])
 
    # Step 5: Initialize application
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
    # Step 6: Initialize model
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
 
    # Now the stochastic program is ready to solve
    print(f"Created stochastic program with {len(sp.scenario_data[None])} scenarios")
@@ -251,8 +251,8 @@ Key Concepts Illustrated
 
 3. **Stochastic Program Setup**:
    - `stochastic_program()` creates the container
-   - `initialize_application()` loads constants
-   - `initialize_model()` loads scenarios and builder
+   - `configure()` loads constants
+   - `configure_scenarios()` loads scenarios and builder
 
 4. **First-Stage Variables**:
    - Specified when creating the stochastic program
@@ -340,10 +340,10 @@ You can create custom variations by modifying the data:
 .. code-block:: python
 
    # Custom application data
-   custom_app_data = dict(c=1.2, b=1.8, h=0.2)
+   custom_common_data = dict(c=1.2, b=1.8, h=0.2)
 
    # Custom scenarios
-   custom_model_data = {
+   custom_scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 10}, "probability": 0.1},
            {"ID": 2, "data": {"d": 50}, "probability": 0.6},
@@ -353,8 +353,8 @@ You can create custom variations by modifying the data:
 
    # Create custom stochastic program
    sp = stochastic_program(first_stage_variables=["x"])
-   sp.initialize_application(app_data=custom_app_data)
-   sp.initialize_model(model_data=custom_model_data, model_builder=builder)
+   sp.configure(common_data=custom_common_data)
+   sp.configure_scenarios(scenario_data=custom_scenario_data, scenario_builder=builder)
 
 Adding More Complexity
 ~~~~~~~~~~~~~~~~~~~~~~
