@@ -426,18 +426,17 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         self.objective: str | None = None
         self.scenario_builder: dict = {}
 
-    def configure_scenarios(
+    def add_scenarios(
         self,
         *,
         name: str | None = None,
         filename: str | None = None,
-        scenario_data: dict | None = None,
+        data: dict | None = None,
         scenario_builder: Any | None = None,
         default: bool = True,
-        **kwargs: Any,
     ) -> None:
         """
-        Configure the scenarios of a model with data and a scenario builder function.
+        Add the scenarios of a model, with their data and a scenario builder function.
 
         Parameters
         ----------
@@ -445,7 +444,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             Name of the model.
         filename : str, optional
             Path to a JSON file containing model data.
-        scenario_data : dict, optional
+        data : dict, optional
             Dictionary containing model and scenario data.  The optional "data" key
             maps to model-level data, and the "scenarios" key maps to a
             list of scenario specifications:
@@ -456,33 +455,34 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             Function to build the model for a scenario.
         default : bool, optional
             Whether this is the default model (default is True).
-        **kwargs : dict
-            Additional keyword arguments.
         """
         if default:
             self.default_model = name
-
-        if filename is not None:
-            with open(f"{filename}", "r") as file:
-                scenario_data = json.load(file)
 
         if name in self.model_data:
             if name is not None:
                 logger.warning(
                     f"Initializing model with name '{name}', which already has been initialized!  This may be a bug in the setup of this StochasticProgram instance."
                 )
-        if scenario_data is not None:
-            self.model_data[name] = scenario_data.get("data", {})
+
+        if scenario_builder is not None:
+            self.scenario_builder[name] = scenario_builder
+
+        if filename is not None:
+            with open(f"{filename}", "r") as file:
+                data = json.load(file)
+
+        
+        if data is not None:
+            self.model_data[name] = data.get("data", {})
             self.scenario_data[name] = validate_scenarios(
-                scenario_data.get("scenarios", []), name
+                data.get("scenarios", []), name
             )
         else:
             self.model_data[name] = {}
             self.scenario_data[name] = {}
 
-        if scenario_builder is not None:
-            self.scenario_builder[name] = scenario_builder
-        if scenario_data is not None and default:
+        if data is not None and default:
             self.set_bundles(
                 initialize_bundles(
                     models=[name],

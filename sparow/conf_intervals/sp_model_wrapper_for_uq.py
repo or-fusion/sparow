@@ -214,9 +214,9 @@ class SPModelWrapperforUQ:
         """
         sp = stochastic_program(first_stage_variables=self._first_stage_variables)
         sp.configure(common_data=self._common_data)
-        sp.configure_scenarios(
+        sp.add_scenarios(
             name=self._name,
-            scenario_data=scenario_data,
+            data=scenario_data,
             scenario_builder=self._scenario_builder,
         )
         return sp

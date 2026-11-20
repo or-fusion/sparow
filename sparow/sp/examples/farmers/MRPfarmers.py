@@ -285,9 +285,9 @@ scenario_data = {
 def Basic_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
+    sp.add_scenarios(
         name="Basic",
-        scenario_data=scenario_data["Basic"],
+        data=scenario_data["Basic"],
         scenario_builder=scenario_builder,
     )
     return sp
@@ -296,9 +296,9 @@ def Basic_farmers():
 def Advanced_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
+    sp.add_scenarios(
         name="Advanced",
-        scenario_data=scenario_data["Advanced"],
+        data=scenario_data["Advanced"],
         scenario_builder=scenario_builder,
     )
     return sp

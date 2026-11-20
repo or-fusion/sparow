@@ -194,6 +194,6 @@ scenario_data = {
 }
 
 
-FarmerSP.configure_scenarios(scenario_data=scenario_data)
+FarmerSP.add_scenarios(data=scenario_data)
 ph = ProgressiveHedgingSolver()
 ph.solve(FarmerSP, max_iterations=10, solver="gurobi", loglevel="DEBUG", rho=10)

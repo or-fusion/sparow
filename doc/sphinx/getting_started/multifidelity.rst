@@ -51,8 +51,8 @@ standard list format:
        ],
    }
 
-   sp.configure_scenarios(name="HF", scenario_data=hf_data, scenario_builder=hf_builder)
-   sp.configure_scenarios(name="LF", scenario_data=lf_data, scenario_builder=lf_builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=hf_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=lf_builder, default=False)
 
 After the models are initialized, `sp.scenario_data` contains the scenarios
 of all models, indexed by model name and scenario ID.  This is the data that
@@ -193,16 +193,16 @@ To create a multifidelity stochastic program:
 
    # Step 2: Initialize with HF model
    sp.configure(common_data=common_data)
-   sp.configure_scenarios(
+   sp.add_scenarios(
        name="HF",
-       scenario_data=hf_data,
+       data=hf_data,
        scenario_builder=hf_builder
    )
 
    # Step 3: Add LF model
-   sp.configure_scenarios(
+   sp.add_scenarios(
        name="LF",
-       scenario_data=lf_data,
+       data=lf_data,
        scenario_builder=lf_builder,
        default=False  # Not the default model
    )
@@ -311,8 +311,8 @@ Newsvendor Problem
    sp.configure(common_data=common_data)
 
    # Initialize models
-   sp.configure_scenarios(name="HF", scenario_data=hf_data, scenario_builder=builder)
-   sp.configure_scenarios(name="LF", scenario_data=lf_data, scenario_builder=builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=builder, default=False)
 
    # Use multifidelity bundling
    bundles = mf_kmeans_similar(
@@ -347,8 +347,8 @@ Facility Location Problem
    # Create multifidelity program
    sp = stochastic_program(first_stage_variables=["x1", "x2", "x3"])
    sp.configure(common_data=facility_data)
-   sp.configure_scenarios(name="HF", scenario_data=hf_data, scenario_builder=facility_builder)
-   sp.configure_scenarios(name="LF", scenario_data=lf_data, scenario_builder=facility_builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=facility_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=facility_builder, default=False)
 
    # Use paired bundling for direct correspondence
    bundles = mf_paired(sp.scenario_data, models=["HF", "LF"])
@@ -382,11 +382,11 @@ Start with LF models and adaptively refine with HF:
 .. code-block:: python
 
    # Phase 1: Solve with LF only
-   sp.configure_scenarios(name="LF", scenario_data=lf_data, scenario_builder=lf_builder)
+   sp.add_scenarios(name="LF", data=lf_data, scenario_builder=lf_builder)
    solver.solve(sp)  # Fast, approximate solution
 
    # Phase 2: Add HF and refine
-   sp.configure_scenarios(name="HF", scenario_data=hf_data, scenario_builder=hf_builder, default=False)
+   sp.add_scenarios(name="HF", data=hf_data, scenario_builder=hf_builder, default=False)
    bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "LF"],
                                bundle_args={'data_key': 'd'})
    sp.set_bundles(bundles)
@@ -422,7 +422,7 @@ Use more than two fidelity levels:
 .. code-block:: python
 
    # Add medium-fidelity model
-   sp.configure_scenarios(name="MF", scenario_data=mf_data, scenario_builder=mf_builder, default=False)
+   sp.add_scenarios(name="MF", data=mf_data, scenario_builder=mf_builder, default=False)
 
    # Bundle all three levels
    bundles = mf_kmeans_similar(sp.scenario_data, models=["HF", "MF", "LF"],

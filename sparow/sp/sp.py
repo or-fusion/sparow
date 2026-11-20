@@ -105,7 +105,7 @@ class StochasticProgram(object):
     bundles : BundleObj or None
         Bundles for the stochastic program.
     common_data : dict
-        Dictionary of application data.
+        Dictionary of data common to all models and scenarios.
     model_data : dict
         Dictionary mapping model names to their data.
     scenario_data : dict
@@ -121,8 +121,8 @@ class StochasticProgram(object):
 
         # Bundles (must be initialized later)
         self.bundles: Any | None = None
-        # Dictionary of application data
-        self.common_data: dict[str, Any] = {}
+        # Dictionary of common model data.
+        self.common_data: dict = {}
         # model_data[model_name] -> data
         self.model_data: dict[str, Any] = {}
         # scenario_data[model_name][scenario_name] -> {"data": ..., "probability": ...}
@@ -139,7 +139,6 @@ class StochasticProgram(object):
         *,
         filename: str | None = None,
         common_data: dict[str, Any] | None = None,
-        **kwargs: Any,
     ) -> None:
         """
         Configure the stochastic program with data common to all models and scenarios.

@@ -30,7 +30,7 @@ The newsvendor example demonstrates the standard Sparow workflow for setting up 
 3. **Create builder function** - Returns a Pyomo model for a single scenario
 4. **Create stochastic program** - Using `stochastic_program()`
 5. **Configure common data** - Using `configure()`
-6. **Configure scenarios** - Using `configure_scenarios()`
+6. **Add scenarios** - Using `add_scenarios()`
 
 Let's examine each step in detail:
 
@@ -148,12 +148,12 @@ This loads the problem parameters into the stochastic program.
 Step 6: Initialize Model
 ------------------------
 
-Use `configure_scenarios()` to set up the scenario data and builder:
+Use `add_scenarios()` to set up the scenario data and builder:
 
 .. code-block:: python
 
    # Initialize with model data and builder function
-   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
 This completes the setup by:
 - Loading scenario data
@@ -208,7 +208,7 @@ Here's the complete newsvendor example showing all steps:
    sp.configure(common_data=common_data)
 
    # Step 6: Initialize model
-   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
    # Now the stochastic program is ready to solve
    print(f"Created stochastic program with {len(sp.scenario_data[None])} scenarios")
@@ -252,7 +252,7 @@ Key Concepts Illustrated
 3. **Stochastic Program Setup**:
    - `stochastic_program()` creates the container
    - `configure()` loads constants
-   - `configure_scenarios()` loads scenarios and builder
+   - `add_scenarios()` loads scenarios and builder
 
 4. **First-Stage Variables**:
    - Specified when creating the stochastic program
@@ -354,7 +354,7 @@ You can create custom variations by modifying the data:
    # Create custom stochastic program
    sp = stochastic_program(first_stage_variables=["x"])
    sp.configure(common_data=custom_common_data)
-   sp.configure_scenarios(scenario_data=custom_scenario_data, scenario_builder=builder)
+   sp.add_scenarios(data=custom_scenario_data, scenario_builder=builder)
 
 Adding More Complexity
 ~~~~~~~~~~~~~~~~~~~~~~

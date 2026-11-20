@@ -132,8 +132,8 @@ class TestFacilityLoc:
 
         sp = stochastic_program(first_stage_variables=["x"])
         sp.configure(common_data=common_data)
-        sp.configure_scenarios(
-            name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
+        sp.add_scenarios(
+            name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
         )
         solver = ExtensiveFormSolver()
         solver.set_options(solver=mip_solver)

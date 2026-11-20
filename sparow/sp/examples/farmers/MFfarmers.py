@@ -616,8 +616,8 @@ def scenario_builder(data, args):
 def HF_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="HF", scenario_data=scenario_data["HF"], scenario_builder=scenario_builder
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=scenario_builder
     )
     return Munch(sp=sp)
 
@@ -625,9 +625,9 @@ def HF_farmers():
 def LF_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
+    sp.add_scenarios(
         name="LF",
-        scenario_data=scenario_data["LF"],
+        data=scenario_data["LF"],
         scenario_builder=LF_scenario_builder,
     )
     return Munch(sp=sp)
@@ -636,12 +636,12 @@ def LF_farmers():
 def MFrandom_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="HF", scenario_data=scenario_data["HF"], scenario_builder=scenario_builder
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=scenario_builder
     )
-    sp.configure_scenarios(
+    sp.add_scenarios(
         name="LF",
-        scenario_data=scenario_data["LF"],
+        data=scenario_data["LF"],
         scenario_builder=LF_scenario_builder,
         default=False,
     )

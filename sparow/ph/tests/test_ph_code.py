@@ -182,7 +182,7 @@ def scenario_builder(scen, scen_args):
 
 
 # FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-# FarmerSP.configure_scenarios(scenario_builder=scenario_builder)
+# FarmerSP.add_scenarios(scenario_builder=scenario_builder)
 
 scenario_data = {
     "scenarios": [
@@ -227,8 +227,8 @@ class TestSolverAgainstMPISPPY(object):
             print(ef_objval)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.configure_scenarios(
-            scenario_data=scenario_data, scenario_builder=scenario_builder
+        FarmerSP.add_scenarios(
+            data=scenario_data, scenario_builder=scenario_builder
         )
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
@@ -266,8 +266,8 @@ class TestSolverAgainstMPISPPY(object):
         mpi_objval = ph.Eobjective()
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.configure_scenarios(
-            scenario_data=scenario_data, scenario_builder=scenario_builder
+        FarmerSP.add_scenarios(
+            data=scenario_data, scenario_builder=scenario_builder
         )
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
@@ -320,8 +320,8 @@ class TestSolverAgainstMPISPPY(object):
             print("=" * 60)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.configure_scenarios(
-            scenario_data=scenario_data, scenario_builder=scenario_builder
+        FarmerSP.add_scenarios(
+            data=scenario_data, scenario_builder=scenario_builder
         )
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
@@ -363,8 +363,8 @@ class TestSolverAgainstMPISPPY(object):
             w_bar_mpisppy.append(row)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.configure_scenarios(
-            scenario_data=scenario_data, scenario_builder=scenario_builder
+        FarmerSP.add_scenarios(
+            data=scenario_data, scenario_builder=scenario_builder
         )
         ph = ProgressiveHedgingSolver()
         results = ph.solve(

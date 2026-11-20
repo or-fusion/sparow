@@ -38,7 +38,7 @@ All Sparow formulations follow this pattern:
    sp.configure(common_data=common_data)
 
    # 6. Initialize model
-   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
 Let's explore each component in detail using the newsvendor example.
 
@@ -224,13 +224,13 @@ Load model data and register the builder function:
 .. code-block:: python
 
    # From dictionary
-   sp.configure_scenarios(
-       scenario_data=scenario_data,
+   sp.add_scenarios(
+       data=scenario_data,
        scenario_builder=builder
    )
 
    # From JSON file
-   sp.configure_scenarios(
+   sp.add_scenarios(
        filename="scenario_data.json",
        scenario_builder=builder
    )
@@ -297,7 +297,7 @@ Here's a complete formulation using the newsvendor problem:
    sp.configure(common_data=common_data)
 
    # Step 6: Initialize model
-   sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
    # Formulation is now complete and ready to solve
    print(f"Created stochastic program with {len(sp.scenario_data[None])} scenarios")

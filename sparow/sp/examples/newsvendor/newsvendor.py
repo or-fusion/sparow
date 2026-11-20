@@ -56,7 +56,7 @@ def simple_newsvendor():
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(scenario_data=scenario_data, scenario_builder=builder)
+    sp.add_scenarios(data=scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=76.5,
@@ -86,7 +86,7 @@ def single_scenario_newsvendor():
     }
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(scenario_data=local_scenario_data, scenario_builder=builder)
+    sp.add_scenarios(data=local_scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=50.0,

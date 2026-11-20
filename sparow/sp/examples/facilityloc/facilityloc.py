@@ -221,8 +221,8 @@ def HF_builder(data, args):
 def AMPL_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="HF", scenario_data=scenario_data["LF"], scenario_builder=HF_builder
+    sp.add_scenarios(
+        name="HF", data=scenario_data["LF"], scenario_builder=HF_builder
     )
     return Munch(sp=sp, objective_value=16758018.59625)
 
@@ -230,9 +230,9 @@ def AMPL_facilityloc():
 def AMPL_facilityloc_Benders_Test():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
+    sp.add_scenarios(
         # name="HF",
-        scenario_data=scenario_data["LF"],
+        data=scenario_data["LF"],
         scenario_builder=HF_builder,
     )
     return Munch(sp=sp, objective_value=16758018.59625)
@@ -241,8 +241,8 @@ def AMPL_facilityloc_Benders_Test():
 def HF_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
     )
     return Munch(sp=sp)
 
@@ -250,8 +250,8 @@ def HF_facilityloc():
 def LF_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="LF", scenario_data=scenario_data["LF"], scenario_builder=LF_builder
+    sp.add_scenarios(
+        name="LF", data=scenario_data["LF"], scenario_builder=LF_builder
     )
     return Munch(sp=sp)
 
@@ -259,12 +259,12 @@ def LF_facilityloc():
 def MFrandom_facilityloc():
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
-    sp.configure_scenarios(
-        name="HF", scenario_data=scenario_data["HF"], scenario_builder=HF_builder
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=HF_builder
     )
-    sp.configure_scenarios(
+    sp.add_scenarios(
         name="LF",
-        scenario_data=scenario_data["LF"],
+        data=scenario_data["LF"],
         scenario_builder=LF_builder,
         default=False,
     )
