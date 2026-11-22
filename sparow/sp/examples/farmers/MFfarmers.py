@@ -643,7 +643,6 @@ def MFrandom_farmers():
         name="LF",
         data=scenario_data["LF"],
         scenario_builder=LF_scenario_builder,
-        default=False,
     )
     sp.initialize_bundles(
         scheme="mf_random",

@@ -32,6 +32,7 @@ def test_sp_simple_newsvendor(mip_solver):
     #
     M1 = sp.create_subproblem("1")
     assert set(sp.int_to_FirstStageVar.keys()) == {"1"}
+    # assert set(sp.int_to_FirstStageVar.keys()) == {"1","2","3","4","5"}
     assert sp.varcuid_to_int == {pyo.ComponentUID("x"): 0}
 
     M2 = sp.create_subproblem("2")
@@ -61,8 +62,8 @@ class TestMFNewsVendor:
 
 
 @unittest.pytest.mark.parametrize("mip_solver", solvers)
-def test_sp_LF_newsvendor(mip_solver):
-    app = LF_newsvendor()
+def test_sp_HF_newsvendor(mip_solver):
+    app = HF_newsvendor()
     sp = app.sp
 
     assert set(sp.bundles.keys()) == {"LF_1", "LF_2", "LF_3", "LF_4", "LF_5"}
@@ -99,7 +100,7 @@ def test_sp_HF_newsvendor(mip_solver):
     sp = app.sp
 
     assert set(sp.bundles.keys()) == {"HF_1", "HF_2", "HF_3", "HF_4", "HF_5"}
-    assert sp.bundles["HF_1"].probability == 0.05
+    assert sp.bundles["HF_1"].probability == 0.1
 
     #
     # Testing internal data structures
@@ -181,48 +182,48 @@ def test_MFrandom(mip_solver):
     assert sp.get_bundles() == {
         "HF_1": {
             "probability": 0.2,
-            "scenarios": [("HF", "1"), ("LF", "1"), ("LF", "3")],
             "scenario_probability": {
-                ("HF", "1"): 0.5,
-                ("LF", "3"): 0.25,
-                ("LF", "1"): 0.25,
+                ("HF", "1"): 0.2,
+                ("LF", "1"): 0.4,
+                ("LF", "3"): 0.4,
             },
+            "scenarios": [("HF", "1"), ("LF", "1"), ("LF", "3")],
         },
         "HF_2": {
             "probability": 0.2,
-            "scenarios": [("HF", "2"), ("LF", "1"), ("LF", "4")],
             "scenario_probability": {
-                ("HF", "2"): 0.5,
-                ("LF", "4"): 0.25,
-                ("LF", "1"): 0.25,
+                ("HF", "2"): 0.2,
+                ("LF", "1"): 0.4,
+                ("LF", "4"): 0.4,
             },
+            "scenarios": [("HF", "2"), ("LF", "1"), ("LF", "4")],
         },
         "HF_3": {
             "probability": 0.2,
-            "scenarios": [("HF", "3"), ("LF", "1"), ("LF", "3")],
             "scenario_probability": {
-                ("HF", "3"): 0.5,
-                ("LF", "3"): 0.25,
-                ("LF", "1"): 0.25,
+                ("HF", "3"): 0.2,
+                ("LF", "1"): 0.4,
+                ("LF", "3"): 0.4,
             },
+            "scenarios": [("HF", "3"), ("LF", "1"), ("LF", "3")],
         },
         "HF_4": {
             "probability": 0.2,
-            "scenarios": [("HF", "4"), ("LF", "4"), ("LF", "5")],
             "scenario_probability": {
-                ("HF", "4"): 0.5,
-                ("LF", "5"): 0.25,
-                ("LF", "4"): 0.25,
+                ("HF", "4"): 0.2,
+                ("LF", "4"): 0.4,
+                ("LF", "5"): 0.4,
             },
+            "scenarios": [("HF", "4"), ("LF", "4"), ("LF", "5")],
         },
         "HF_5": {
             "probability": 0.2,
-            "scenarios": [("HF", "5"), ("LF", "4"), ("LF", "5")],
             "scenario_probability": {
-                ("HF", "5"): 0.5,
-                ("LF", "5"): 0.25,
-                ("LF", "4"): 0.25,
+                ("HF", "5"): 0.2,
+                ("LF", "4"): 0.4,
+                ("LF", "5"): 0.4,
             },
+            "scenarios": [("HF", "5"), ("LF", "4"), ("LF", "5")],
         },
     }
 
