@@ -60,7 +60,7 @@ def finalize_ph_results(
     ]
     assert len(xbar) == len(
         sp.shared_variables()
-    ), "Mismatch between solution variables and SP model variables: {len(xbar)} != {len(sp.shared_variables())}"
+    ), f"Mismatch between solution variables and SP model variables: {len(xbar)} != {len(sp.shared_variables())}"
     #
     # We use xbar to identify a point that is feasible for all scenarios.
     #
@@ -237,7 +237,7 @@ class ProgressiveHedgingSolver(object):
                 sparow.logs.use_debugging_formatter()
             logger.setLevel(loglevel)
 
-    def solve(self, sp, **options):
+    def solve(self, sp, sp_finalize=None, **options):
         """
         Solve a stochastic program using the progressive hedging algorithm.
 
@@ -245,6 +245,9 @@ class ProgressiveHedgingSolver(object):
         ----------
         sp : StochasticProgram
             The stochastic program to solve.
+        sp_finalize : StochasticProgram
+            The stochastic program used to evaluate the final solutions.
+            If this is None, then 'sp' is used to do the evaluation.
         **options : dict
             Additional options for the solver.
 
@@ -299,6 +302,8 @@ class ProgressiveHedgingSolver(object):
         #   the user has initialized the sub-solver within the SP object.
         if self.solver_name:
             sp.set_solver(self.solver_name)
+            if sp_finalize:
+                sp_finalize.set_solver(self.solver_name)
 
         logger.info("ProgressiveHedgingSolver - START")
         iteration_timer = TicTocTimer()
@@ -497,6 +502,11 @@ class ProgressiveHedgingSolver(object):
         logger.info("")
         logger.info("-" * 70)
         logger.info("ProgressiveHedgingSolver - FINALIZING")
+        if sp_finalize is not None:
+            sp = sp_finalize
+            for b in sp.bundles:
+                sp.create_subproblem(b, cached=self.cached_model_generation)
+
         if self.finalize_all_xbar:
             all_iterations = list(self.solutions)
             self.solutions.add_pool(
