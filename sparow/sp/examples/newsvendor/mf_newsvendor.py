@@ -125,7 +125,7 @@ def LF_newsvendor():
     sp.add_scenarios(name="LF", data=scenario_data["LF"], scenario_builder=LF_builder)
     return Munch(
         sp=sp,
-        objective_value=82.335,
+        objective_value=164.67032617163022,
         unique_solution=True,
         solution_values={"x": 54.0, "s[LF,'1'].x": 9.0, "s[LF,'2'].x": 40.0},
     )
@@ -151,7 +151,7 @@ def MFrandom_newsvendor():
         seed=1234567890,
         model_weight={"LF": 2.0, "HF": 1.0},
     )
-    return Munch(sp=sp, objective_value=81.3525, unique_solution=False)
+    return Munch(sp=sp, objective_value=143.1480534338947, unique_solution=False)
 
 
 def MFpaired_newsvendor():

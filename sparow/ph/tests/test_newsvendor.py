@@ -31,8 +31,8 @@ class TestPHNewsvendor:
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.01)
 
-    def test_LF(self, mip_solver):
-        app = LF_newsvendor()
+    def test_HF(self, mip_solver):
+        app = HF_newsvendor()
         solver = ProgressiveHedgingSolver()
         solver.set_options(solver=mip_solver)
         solver.set_options(max_iterations=1000)
@@ -45,8 +45,8 @@ class TestPHNewsvendor:
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.01)
 
-    def test_HF(self, mip_solver):
-        app = HF_newsvendor()
+    def test_LF(self, mip_solver):
+        app = LF_newsvendor()
         solver = ProgressiveHedgingSolver()
         solver.set_options(solver=mip_solver)
         results = solver.solve(app.sp)
