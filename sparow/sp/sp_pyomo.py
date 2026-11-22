@@ -433,7 +433,6 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         filename: str | None = None,
         data: dict | None = None,
         scenario_builder: Any | None = None,
-        default: bool = True,
     ) -> None:
         """
         Add the scenarios of a model, with their data and a scenario builder function.
@@ -453,12 +452,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             the scenario builder as ``data["ID"]``.
         scenario_builder : function, optional
             Function to build the model for a scenario.
-        default : bool, optional
-            Whether this is the default model (default is True).
         """
-        if default:
-            self.default_model = name
-
         if name in self.model_data:
             if name is not None:
                 logger.warning(
@@ -480,15 +474,6 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         else:
             self.model_data[name] = {}
             self.scenario_data[name] = {}
-
-        if data is not None and default:
-            self.set_bundles(
-                initialize_bundles(
-                    models=[name],
-                    model_data=self.model_data,
-                    scenario_data=self.scenario_data,
-                )
-            )
 
     def _first_stage_variables_generator(self, *, M: Any) -> Any:
         """
@@ -602,7 +587,6 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
 
             self.set_bundles(
                 initialize_bundles(
-                    models=[self.default_model],
                     scheme="single_scenario",
                     model_data=self.model_data,
                     scenario_data=self.scenario_data,
