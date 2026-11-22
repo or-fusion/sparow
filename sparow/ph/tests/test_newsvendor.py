@@ -70,13 +70,13 @@ class TestPHNewsvendor:
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.1)
 
-    def test_MFrandom_with_finalize(self, mip_solver):
+    def test_MFrandom_with_mf_sp(self, mip_solver):
         hf_app = HF_newsvendor()
         app = MFrandom_newsvendor()
         solver = ProgressiveHedgingSolver()
         solver.set_options(solver=mip_solver)
         solver.set_options(max_iterations=1000)
-        results = solver.solve(app.sp, sp_finalize=hf_app.sp)
+        results = solver.solve(hf_app.sp, mf_sp=app.sp)
         results_dict = results.to_dict()
         soln = next(iter(results_dict["solutions"].values()))
 

@@ -237,17 +237,17 @@ class ProgressiveHedgingSolver(object):
                 sparow.logs.use_debugging_formatter()
             logger.setLevel(loglevel)
 
-    def solve(self, sp, sp_finalize=None, **options):
+    def solve(self, sp_finalize, mf_sp=None, **options):
         """
         Solve a stochastic program using the progressive hedging algorithm.
 
         Parameters
         ----------
-        sp : StochasticProgram
-            The stochastic program to solve.
         sp_finalize : StochasticProgram
-            The stochastic program used to evaluate the final solutions.
-            If this is None, then 'sp' is used to do the evaluation.
+            The stochastic program to solve.
+        mf_sp : StochasticProgram
+            The multi-fidelity stochastic approximation used to for search.
+            If this is None, then 'sp_finalize' is used for search.
         **options : dict
             Additional options for the solver.
 
@@ -301,9 +301,12 @@ class ProgressiveHedgingSolver(object):
         # The StochProgram object manages the sub-solver interface.  By default, we assume
         #   the user has initialized the sub-solver within the SP object.
         if self.solver_name:
-            sp.set_solver(self.solver_name)
-            if sp_finalize:
-                sp_finalize.set_solver(self.solver_name)
+            sp_finalize.set_solver(self.solver_name)
+            if mf_sp:
+                mf_sp.set_solver(self.solver_name)
+
+        # Identify the stochastic program used for search
+        sp = mf_sp if mf_sp else sp_finalize
 
         logger.info("ProgressiveHedgingSolver - START")
         iteration_timer = TicTocTimer()
@@ -502,10 +505,11 @@ class ProgressiveHedgingSolver(object):
         logger.info("")
         logger.info("-" * 70)
         logger.info("ProgressiveHedgingSolver - FINALIZING")
-        if sp_finalize is not None:
-            sp = sp_finalize
-            for b in sp.bundles:
-                sp.create_subproblem(b, cached=self.cached_model_generation)
+
+        if mf_sp is not None:
+            # Initialize the model logic in sp_finalize if it hasn't been used yet
+            for b in sp_finalize.bundles:
+                sp_finalize.create_subproblem(b, cached=self.cached_model_generation)
 
         if self.finalize_all_xbar:
             all_iterations = list(self.solutions)
@@ -514,14 +518,14 @@ class ProgressiveHedgingSolver(object):
                 policy=solnpool.PoolPolicy.keep_all,
             )
             for soln in all_iterations:
-                finalize_ph_results(soln, sp=sp, solutions=self.solutions)
+                finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
         else:
             soln = self.solutions[latest_soln]
             self.solutions.add_pool(
                 name="Finalized Last PH Solution",
                 policy=solnpool.PoolPolicy.keep_best,
             )
-            finalize_ph_results(soln, sp=sp, solutions=self.solutions)
+            finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
 
         sp_metadata.end_time = str(end_time)
         sp_metadata.time_elapsed = str(end_time - start_time)
