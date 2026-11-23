@@ -11,7 +11,7 @@ import pyomo.repn
 import pyomo.util.vars_from_expressions as vfe
 
 import sparow.logs
-from .sp import StochasticProgram, initialize_bundles, validate_scenarios
+from .sp import StochasticProgram, validate_scenarios, initialize_bundles
 from .replace_variables_transformation import ReplaceVariablesTransformation
 
 logger = sparow.logs.logger
@@ -369,7 +369,7 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         model_fidelities : dict, optional
             Dictionary specifying model fidelities.
         cache_bundles : bool, optional
-            Whether to cache bundles (default is False).
+            Whether to cache bundles (default is True).
         compact_repn : bool, optional
             Whether to use compact representation (default is True).
 
@@ -378,15 +378,17 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         pyomo.ConcreteModel
             The extensive form model.
         """
+        if self._bundles is not None and len(self.bundles) > 1:
+            logger.info(
+                "Ignoring the existing bundle when creating the EF!  The existing bundle information is inconsistent with the format needed to create an EF representation.  An EF representation can only be created with a single bundle, but {len(self.bundles)} are configured for the stochastic program."
+            )
+
         if cache_bundles:
             _int_toFirstStageVar = self.int_to_FirstStageVar
             _model_cache = self._model_cache
             _bundles = self.bundles
 
-        if model_fidelities is None:
-            self.initialize_bundles(scheme="single_bundle")
-        else:
-            self.initialize_bundles(scheme="single_bundle", models=model_fidelities)
+        self.initialize_bundles(scheme="single_bundle", models=model_fidelities)
         assert (
             len(self.bundles) == 1
         ), f"The extensive form should only have one bundle: {len(self.bundles)}"
@@ -397,7 +399,7 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         if cache_bundles:
             self.int_to_FirstStageVar = _int_toFirstStageVar
             self._model_cache = _model_cache
-            self.bundles = _bundles
+            self._bundles = _bundles
         return M
 
 
@@ -616,7 +618,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
                     )
 
             # Setup single-scenario bundles with the default model
-            self.bundles = _bundles
+            self._bundles = _bundles
             self._model_cache = _model_cache
             self.int_to_FirstStageVar = _int_toFirstStageVar
 
