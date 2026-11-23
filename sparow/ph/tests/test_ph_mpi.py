@@ -46,26 +46,27 @@ def run_driver(nprocs, tmp_path):
 @pytest.mark.skipif(solver is None, reason="no LP solver available")
 class TestProgressiveHedgingMPI(object):
 
-    def test_matches_serial(self, tmp_path):
-        # 5 bundles: 6 ranks = 1 coordinator + 1 worker per bundle;
-        # 7 ranks adds an idle search rank that still helps with finalization.
-        for nprocs in (6, 7):
-            proc, outfile = run_driver(nprocs, tmp_path)
-            assert proc.returncode == 0, proc.stdout + proc.stderr
+    # The simple newsvendor example has 5 bundles.  Use fewer workers than
+    # bundles (including a single process, where the master executes all
+    # tasks), one worker per bundle, and more workers than bundles.
+    @pytest.mark.parametrize("nprocs", [1, 2, 3, 6, 7])
+    def test_matches_serial(self, nprocs, tmp_path):
+        proc, outfile = run_driver(nprocs, tmp_path)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
 
-            results = json.loads(outfile.read_text())
-            assert set(results) == {"default", "finalize_all_xbar", "solver_options"}
-            for config, res in results.items():
-                mpi, serial = res["mpi"], res["serial"]
-                label = f"nprocs={nprocs} config={config}"
-                assert mpi["xbar"] == pytest.approx(
-                    serial["xbar"], rel=1e-6, abs=1e-6
-                ), label
-                assert mpi["objective"] == pytest.approx(
-                    serial["objective"], rel=1e-6
-                ), label
-
-    def test_too_few_processes(self, tmp_path):
-        proc, _ = run_driver(5, tmp_path)
-        assert proc.returncode != 0
-        assert "requires at least 6 MPI processes" in proc.stdout + proc.stderr
+        results = json.loads(outfile.read_text())
+        assert set(results) == {
+            "default",
+            "finalize_all_xbar",
+            "solver_options",
+            "mf_sp",
+        }
+        for config, res in results.items():
+            mpi, serial = res["mpi"], res["serial"]
+            label = f"nprocs={nprocs} config={config}"
+            assert mpi["xbar"] == pytest.approx(
+                serial["xbar"], rel=1e-6, abs=1e-6
+            ), label
+            assert mpi["objective"] == pytest.approx(
+                serial["objective"], rel=1e-6
+            ), label
