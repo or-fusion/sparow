@@ -176,7 +176,7 @@ class TestSP(object):
 
 class TestScenarioFormat(object):
 
-    def test_scenario_data_and_probability(self):
+    def test_scenario_data_and_probability_single_fidelity(self):
         received = {}
 
         def builder(data, args):
@@ -200,6 +200,54 @@ class TestScenarioFormat(object):
         )
         probs = {b: sp.bundles[b].probability for b in sp.bundles.keys()}
         assert probs == {"a": pytest.approx(0.25), "b": pytest.approx(0.75)}
+
+        sp.create_EF()
+        assert received == {
+            "a": {"c": 1, "m": 2, "d": 3, "ID": "a"},
+            "b": {"c": 1, "m": 2, "d": 4, "ID": "b"},
+        }
+
+    def test_scenario_data_and_probability_multi_fidelity(self):
+        received = {}
+
+        def builder(data, args):
+            received[data["ID"]] = dict(data)
+            M = pyo.ConcreteModel()
+            M.x = pyo.Var()
+            M.o = pyo.Objective(expr=data["d"] * M.x)
+            return M
+
+        sp = stochastic_program(first_stage_variables=["x"])
+        sp.configure(common_data={"c": 1})
+        sp.add_scenarios(
+            name="F1",
+            data={
+                "data": {"m": 2},
+                "scenarios": [
+                    {"ID": "a", "data": {"d": 3}, "probability": 0.25},
+                    {"ID": "b", "data": {"d": 4}, "probability": 0.75},
+                ],
+            },
+            scenario_builder=builder,
+        )
+        sp.add_scenarios(
+            name="F2",
+            data={
+                "data": {"m": 2},
+                "scenarios": [
+                    {"ID": "a", "data": {"d": 3}, "probability": 0.25},
+                    {"ID": "b", "data": {"d": 4}, "probability": 0.75},
+                ],
+            },
+            scenario_builder=builder,
+        )
+        probs = {b: sp.bundles[b].probability for b in sp.bundles.keys()}
+        assert probs == {
+            "F1_a": pytest.approx(0.125),
+            "F1_b": pytest.approx(0.375),
+            "F2_a": pytest.approx(0.125),
+            "F2_b": pytest.approx(0.375),
+        }
 
         sp.create_EF()
         assert received == {

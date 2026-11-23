@@ -129,7 +129,7 @@ def test_sp_HF_newsvendor(mip_solver):
 
 @unittest.pytest.mark.parametrize("mip_solver", solvers)
 def test_MFpaired(mip_solver):
-    app = MFpaired_newsvendor()
+    app = MFpaired_newsvendor(with_bundles=True)
     sp = app.sp
 
     assert set(sp.bundles.keys()) == {"1", "2", "3", "4", "5"}
@@ -176,52 +176,52 @@ def test_MFpaired(mip_solver):
 
 @unittest.pytest.mark.parametrize("mip_solver", solvers)
 def test_MFrandom(mip_solver):
-    app = MFrandom_newsvendor()
+    app = MFrandom_newsvendor(with_bundles=True)
     sp = app.sp
 
     assert sp.get_bundles() == {
         "HF_1": {
             "probability": 0.2,
             "scenario_probability": {
-                ("HF", "1"): 0.2,
-                ("LF", "1"): 0.4,
-                ("LF", "3"): 0.4,
+                ("HF", "1"): pytest.approx(0.25),
+                ("LF", "1"): pytest.approx(0.25),
+                ("LF", "3"): pytest.approx(0.5),
             },
             "scenarios": [("HF", "1"), ("LF", "1"), ("LF", "3")],
         },
         "HF_2": {
             "probability": 0.2,
             "scenario_probability": {
-                ("HF", "2"): 0.2,
-                ("LF", "1"): 0.4,
-                ("LF", "4"): 0.4,
+                ("HF", "2"): pytest.approx(0.2),
+                ("LF", "1"): pytest.approx(0.1),
+                ("LF", "4"): pytest.approx(0.7),
             },
             "scenarios": [("HF", "2"), ("LF", "1"), ("LF", "4")],
         },
         "HF_3": {
             "probability": 0.2,
             "scenario_probability": {
-                ("HF", "3"): 0.2,
-                ("LF", "1"): 0.4,
-                ("LF", "3"): 0.4,
+                ("HF", "3"): pytest.approx(0.25),
+                ("LF", "1"): pytest.approx(0.25),
+                ("LF", "3"): pytest.approx(0.5),
             },
             "scenarios": [("HF", "3"), ("LF", "1"), ("LF", "3")],
         },
         "HF_4": {
             "probability": 0.2,
             "scenario_probability": {
-                ("HF", "4"): 0.2,
-                ("LF", "4"): 0.4,
-                ("LF", "5"): 0.4,
+                ("HF", "4"): pytest.approx(0.25),
+                ("LF", "4"): pytest.approx(0.5833333333333334),
+                ("LF", "5"): pytest.approx(0.16666666666666669),
             },
             "scenarios": [("HF", "4"), ("LF", "4"), ("LF", "5")],
         },
         "HF_5": {
             "probability": 0.2,
             "scenario_probability": {
-                ("HF", "5"): 0.2,
-                ("LF", "4"): 0.4,
-                ("LF", "5"): 0.4,
+                ("HF", "5"): pytest.approx(0.25),
+                ("LF", "4"): pytest.approx(0.5833333333333334),
+                ("LF", "5"): pytest.approx(0.16666666666666669),
             },
             "scenarios": [("HF", "5"), ("LF", "4"), ("LF", "5")],
         },
