@@ -120,9 +120,24 @@ def finalize_ph_results(
     return solutions
 
 
-class ProgressiveHedgingSolver(object):
+class ProgressiveHedgingSolverBase(object):
     """
-    A solver for stochastic programs using the progressive hedging algorithm.
+    Base class for solvers that use the progressive hedging (PH) algorithm.
+
+    This class implements the PH algorithm itself.  Derived classes control
+    *where* the work is performed by implementing the following hooks:
+
+    * ``_solve_subproblems()``: solve the subproblems for all bundles and
+      return their objective values and first-stage variable values.
+    * ``_prepare_finalize()``: return the function used to evaluate candidate
+      solutions during finalization.
+
+    and optionally:
+
+    * ``_setup_search()``: called once before the initial subproblem solves.
+    * ``_solve()``: wraps the execution of the algorithm (e.g. to dispatch
+      work to other processes).
+    * ``_extra_metadata()``: additional solver metadata to archive.
 
     Attributes
     ----------
@@ -275,11 +290,92 @@ class ProgressiveHedgingSolver(object):
         object
             The solution pool manager containing the results.
         """
-        start_time = datetime.datetime.now()
         if len(options) > 0:
             self.set_options(**options)
+
+        # The StochProgram object manages the sub-solver interface.  By default, we assume
+        #   the user has initialized the sub-solver within the SP object.
+        if self.solver_name:
+            sp_finalize.set_solver(self.solver_name)
+            if mf_sp:
+                mf_sp.set_solver(self.solver_name)
+
+        # Identify the stochastic program used for search
+        sp = mf_sp if mf_sp else sp_finalize
+
+        return self._solve(sp_finalize, mf_sp, sp)
+
+    #
+    # Hooks for derived classes
+    #
+
+    def _solve(self, sp_finalize, mf_sp, sp):
+        """
+        Execute the PH algorithm.  Derived classes may override this to wrap
+        the execution of _run_ph().
+        """
+        return self._run_ph(sp_finalize, mf_sp, sp, list(sp.bundles))
+
+    def _setup_search(self, sp, bundle_ids):
+        """
+        Called once before the initial subproblem solves.
+        """
+        pass
+
+    def _solve_subproblems(self, sp, bundle_ids, *, iteration, w=None, xbar=None):
+        """
+        Solve the subproblems for all bundles.
+
+        Parameters
+        ----------
+        sp : StochasticProgram
+            The stochastic program used for search.
+        bundle_ids : list
+            The bundles to solve.
+        iteration : int
+            The PH iteration (0 for the initial solves).
+        w : dict, optional
+            The PH weights, indexed by bundle (None for the initial solves).
+        xbar : dict, optional
+            The current xbar values (None for the initial solves).  When this is
+            given, the subproblems are augmented with the PH penalty terms using
+            ``self.rho``.
+
+        Returns
+        -------
+        tuple
+            (obj_value, xvals), where obj_value[b] is the objective value of
+            bundle b and xvals[b][x] is the value of shared first-stage
+            variable x in bundle b.
+        """
+        raise NotImplementedError
+
+    def _prepare_finalize(self, sp_finalize, mf_sp):
+        """
+        Prepare for finalization, and return the function used to evaluate
+        candidate solutions.  This function has the same signature and return
+        value as ``sp_finalize.evaluate(x, solver_options=...)``.
+        """
+        raise NotImplementedError
+
+    def _extra_metadata(self):
+        """
+        Additional solver metadata to archive.
+        """
+        return {}
+
+    #
+    # The PH algorithm
+    #
+
+    def _run_ph(self, sp_finalize, mf_sp, sp, bundle_ids):
+        name = type(self).__name__
+        start_time = datetime.datetime.now()
+        extra_metadata = self._extra_metadata()
         if logger.isEnabledFor(logging.DEBUG):
             print("Solver Configuration")
+            for key, value in extra_metadata.items():
+                print(f"  {key:<26} {value}")
             print(f"  cached_model_generation    {self.cached_model_generation}")
             print(f"  convergence_norm           {self.convergence_norm}")
             print(f"  convergence_tolerance      {self.convergence_tolerance}")
@@ -315,36 +411,20 @@ class ProgressiveHedgingSolver(object):
             normalize_convergence_norm=self.normalize_convergence_norm,
             solver_name=self.solver_name,
             solver_options=self.solver_options,
+            **extra_metadata,
         )
 
-        # The StochProgram object manages the sub-solver interface.  By default, we assume
-        #   the user has initialized the sub-solver within the SP object.
-        if self.solver_name:
-            sp_finalize.set_solver(self.solver_name)
-            if mf_sp:
-                mf_sp.set_solver(self.solver_name)
+        self._setup_search(sp, bundle_ids)
 
-        # Identify the stochastic program used for search
-        sp = mf_sp if mf_sp else sp_finalize
-
-        logger.info("ProgressiveHedgingSolver - START")
+        logger.info(f"{name} - START")
         iteration_timer = TicTocTimer()
         iteration_timer.tic(None)
 
         # Step 2
-        obj_value = {}
         tic("Initial subproblems", logger=logger, level=logging.VERBOSE)
-        for b in sp.bundles:
-            M = sp.create_subproblem(b, cached=self.cached_model_generation)
-            toc("Created subproblem %s", str(b), logger=logger, level=logging.VERBOSE)
-
-            results = sp.solve(M, solver_options=self.solver_options)
-            assert (
-                results.obj_value is not None
-            ), f"ERROR solving bundle {b} in initial solve"
-            obj_value[b] = results.obj_value
-            toc("Optimized subproblem %s", str(b), logger=logger, level=logging.VERBOSE)
-        obj_lb = sum(sp.bundles[b].probability * obj_value[b] for b in sp.bundles)
+        obj_value, xvals = self._solve_subproblems(sp, bundle_ids, iteration=0)
+        toc("Initial subproblems - DONE", logger=logger, level=logging.VERBOSE)
+        obj_lb = sum(sp.bundles[b].probability * obj_value[b] for b in bundle_ids)
 
         #
         # This is a list of shared first-stage variables amongst all bundles.
@@ -355,18 +435,15 @@ class ProgressiveHedgingSolver(object):
         # Step 3
         xbar = {}
         for x in sfs_variables:
-            xbar[x] = sum(
-                sp.bundles[b].probability * sp.get_variable_value(b, x)
-                for b in sp.bundles
-            )
-        self.update_rho(sfs_variables, xbar, sp)
+            xbar[x] = sum(sp.bundles[b].probability * xvals[b][x] for b in bundle_ids)
+        self.update_rho(sfs_variables, xbar, sp, xvals)
 
         # Step 4
         w = {}
-        for b in sp.bundles:
+        for b in bundle_ids:
             w[b] = {}
             for x in sfs_variables:
-                w[b][x] = self.rho[x] * (sp.get_variable_value(b, x) - xbar[x])
+                w[b][x] = self.rho[x] * (xvals[b][x] - xbar[x])
 
         # Step 4.1
         iteration = 0
@@ -399,60 +476,38 @@ class ProgressiveHedgingSolver(object):
                 logger=logger,
                 level=logging.VERBOSE,
             )
-            obj_value = {}
-            for b in sp.bundles:
-                logger.debug(f"  b: {b}  w: {w[b]}")
-                M = sp.create_subproblem(
-                    b=b,
-                    w=w_prev[b],
-                    x_bar=xbar_prev,
-                    rho=self.rho,
-                    cached=self.cached_model_generation,
-                )
-                toc(
-                    "Created subproblem %s",
-                    str(b),
-                    logger=logger,
-                    level=logging.VERBOSE,
-                )
-
-                results = sp.solve(M, solver_options=self.solver_options)
-                assert (
-                    results.obj_value is not None
-                ), f"ERROR solving bundle {b} in iteration {iteration}"
-                obj_value[b] = results.obj_value
-                toc(
-                    "Optimized subproblem %s",
-                    str(b),
-                    logger=logger,
-                    level=logging.VERBOSE,
-                )
-            obj_lb = sum(sp.bundles[b].probability * obj_value[b] for b in sp.bundles)
+            obj_value, xvals = self._solve_subproblems(
+                sp, bundle_ids, iteration=iteration, w=w_prev, xbar=xbar_prev
+            )
+            toc(
+                f"Subproblems for iteration {iteration} - DONE",
+                logger=logger,
+                level=logging.VERBOSE,
+            )
+            obj_lb = sum(sp.bundles[b].probability * obj_value[b] for b in bundle_ids)
 
             # Step 7
             xbar = {}
             for x in sfs_variables:
                 xbar[x] = sum(
-                    sp.bundles[b].probability * sp.get_variable_value(b, x)
-                    for b in sp.bundles
+                    sp.bundles[b].probability * xvals[b][x] for b in bundle_ids
                 )
-                for b in sp.bundles:
-                    logger.debug(
-                        f"Variable: {x} {b} {sp.get_variable_name(x)} {sp.get_variable_value(b, x)}"
-                    )
+                if logger.isEnabledFor(logging.DEBUG):
+                    for b in bundle_ids:
+                        logger.debug(
+                            f"Variable: {x} {b} {sp.get_variable_name(x)} {xvals[b][x]}"
+                        )
             logger.debug(f"xbar = {xbar}")
 
-            self.update_rho(sfs_variables, xbar, sp)
+            self.update_rho(sfs_variables, xbar, sp, xvals)
             logger.debug(f"rho = {self.rho}")
 
             # Step 8
             w = {}
-            for b in sp.bundles:
+            for b in bundle_ids:
                 w[b] = {}
                 for x in sfs_variables:
-                    w[b][x] = w_prev[b][x] + self.rho[x] * (
-                        sp.get_variable_value(b, x) - xbar[x]
-                    )
+                    w[b][x] = w_prev[b][x] + self.rho[x] * (xvals[b][x] - xbar[x])
                 logger.debug(f"w[{b}] = {w[b]}")
 
             # Step 9
@@ -465,10 +520,10 @@ class ProgressiveHedgingSolver(object):
             g = sum(
                 sp.bundles[b].probability
                 * norm(
-                    [sp.get_variable_value(b, x) - xbar[x] for x in sfs_variables],
+                    [xvals[b][x] - xbar[x] for x in sfs_variables],
                     self.convergence_norm,
                 )
-                for b in sp.bundles
+                for b in bundle_ids
             )
             if self.normalize_convergence_norm:
                 g /= len(sfs_variables)
@@ -523,12 +578,16 @@ class ProgressiveHedgingSolver(object):
 
         logger.info("")
         logger.info("-" * 70)
-        logger.info("ProgressiveHedgingSolver - FINALIZING")
+        logger.info(f"{name} - FINALIZING")
 
-        if mf_sp is not None:
-            # Initialize the model logic in sp_finalize if it hasn't been used yet
-            for b in sp_finalize.bundles:
-                sp_finalize.create_subproblem(b, cached=self.cached_model_generation)
+        evaluate = self._prepare_finalize(sp_finalize, mf_sp)
+        finalize_options = dict(
+            sp=sp_finalize,
+            solutions=self.solutions,
+            finalize_xbar_by_rounding=self.finalize_xbar_by_rounding,
+            evaluate=evaluate,
+            solver_options=self.solver_options,
+        )
 
         if self.finalize_all_xbar:
             all_iterations = list(self.solutions)
@@ -537,40 +596,34 @@ class ProgressiveHedgingSolver(object):
                 policy=solnpool.PoolPolicy.keep_all,
             )
             for soln in all_iterations:
-                finalize_ph_results(
-                    soln,
-                    sp=sp_finalize,
-                    solutions=self.solutions,
-                    solver_options=self.solver_options,
-                )
+                finalize_ph_results(soln, **finalize_options)
         else:
             soln = self.solutions[latest_soln]
             self.solutions.add_pool(
                 name="Finalized Last PH Solution",
                 policy=solnpool.PoolPolicy.keep_best,
             )
-            finalize_ph_results(
-                soln,
-                sp=sp_finalize,
-                solutions=self.solutions,
-                solver_options=self.solver_options,
-            )
+            finalize_ph_results(soln, **finalize_options)
 
         sp_metadata.end_time = str(end_time)
         sp_metadata.time_elapsed = str(end_time - start_time)
 
         logger.info("")
         logger.info("-" * 70)
-        logger.info("ProgressiveHedgingSolver - RESULTS")
+        logger.info(f"{name} - RESULTS")
         if logger.isEnabledFor(logging.DEBUG):
             pprint.pprint(self.solutions.to_dict())
             sys.stdout.flush()
 
         logger.info("")
         logger.info("-" * 70)
-        logger.info("ProgressiveHedgingSolver - STOP")
+        logger.info(f"{name} - STOP")
 
         return self.solutions
+
+    #
+    # Utilities
+    #
 
     def log_iteration(self, **kwds):
         """
@@ -655,7 +708,7 @@ class ProgressiveHedgingSolver(object):
         ]
         return self.solutions.add(variables=variables, **kwds)
 
-    def update_rho(self, sfs_variables, xbar, sp):
+    def update_rho(self, sfs_variables, xbar, sp, xvals):
         """
         Update the penalty parameters (rho) for variables.
 
@@ -667,6 +720,9 @@ class ProgressiveHedgingSolver(object):
             Dictionary of variable values.
         sp : StochasticProgram
             The stochastic program instance.
+        xvals : dict
+            The first-stage variable values, where xvals[b][x] is the value of
+            variable x in bundle b.
         """
         # this function is scenario-independent, but will need to be updated for integer x
         if self.rho_updates:
@@ -674,9 +730,8 @@ class ProgressiveHedgingSolver(object):
                 if abs(sp.get_objective_coef(x)) > 0:
                     self.rho[x] = abs(sp.get_objective_coef(x)) / max(
                         sum(
-                            sp.bundles[b].probability
-                            * abs(sp.get_variable_value(b, x) - xbar[x])
-                            for b in sp.bundles
+                            sp.bundles[b].probability * abs(xvals[b][x] - xbar[x])
+                            for b in xvals
                         ),
                         1,
                     )
@@ -694,3 +749,70 @@ class ProgressiveHedgingSolver(object):
                     self.rho[x] = self.default_rho
                 else:
                     self.rho[x] = 1.5
+
+
+class ProgressiveHedgingSolver(ProgressiveHedgingSolverBase):
+    """
+    A solver for stochastic programs using the progressive hedging algorithm,
+    where all subproblems are solved serially in the current process.
+
+    Attributes
+    ----------
+    rho : dict
+        Dictionary of penalty parameters for variables.
+    cached_model_generation : bool
+        Whether to cache model generation (default is True).
+    max_iterations : int
+        Maximum number of iterations (default is 100).
+    convergence_tolerance : float
+        Tolerance for convergence (default is 1e-3).
+    normalize_convergence_norm : bool
+        Whether to normalize the convergence norm (default is True).
+    convergence_norm : int
+        The norm used for convergence checking (default is 1).
+    solver_name : str or None
+        Name of the solver to use.
+    solver_options : dict
+        Dictionary of solver options.
+    finalize_xbar_by_rounding : bool
+        Whether to round xbar values for binary/integer variables (default is True).
+    finalize_all_xbar : bool
+        Whether to finalize all xbar values (default is False).
+    solutions : object or None
+        The solution pool manager.
+    rho_updates : bool
+        Whether to update rho values (default is False).
+    default_rho : float or None
+        Default value for rho.
+    """
+
+    def _solve_subproblems(self, sp, bundle_ids, *, iteration, w=None, xbar=None):
+        obj_value = {}
+        xvals = {}
+        for b in bundle_ids:
+            if w is not None:
+                logger.debug(f"  b: {b}  w: {w[b]}")
+            M = sp.create_subproblem(
+                b=b,
+                w=None if w is None else w[b],
+                x_bar=xbar,
+                rho=None if xbar is None else self.rho,
+                cached=self.cached_model_generation,
+            )
+            toc("Created subproblem %s", str(b), logger=logger, level=logging.VERBOSE)
+
+            results = sp.solve(M, solver_options=self.solver_options)
+            if results.obj_value is None:
+                when = "initial solve" if iteration == 0 else f"iteration {iteration}"
+                raise RuntimeError(f"ERROR solving bundle {b} in {when}")
+            obj_value[b] = results.obj_value
+            xvals[b] = {x: sp.get_variable_value(b, x) for x in sp.shared_variables()}
+            toc("Optimized subproblem %s", str(b), logger=logger, level=logging.VERBOSE)
+        return obj_value, xvals
+
+    def _prepare_finalize(self, sp_finalize, mf_sp):
+        if mf_sp is not None:
+            # Initialize the model logic in sp_finalize if it hasn't been used yet
+            for b in sp_finalize.bundles:
+                sp_finalize.create_subproblem(b, cached=self.cached_model_generation)
+        return sp_finalize.evaluate
