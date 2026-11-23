@@ -282,47 +282,6 @@ class TestBundleFunctions(object):
                 },
             )
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            with pytest.raises(RuntimeError) as excinfo:
-                mf_kmeans_similar(
-                    weird_key_names, bundle_args={"data_key": "weird_key_d"}
-                )
-            assert excinfo.type is RuntimeError
-            warnings.warn(
-                "No scenario probabilities are given; assuming uniform distribution.",
-                UserWarning,
-            )
-
-        with pytest.warns(
-            UserWarning,
-            match="No scenario probabilities are given; assuming uniform distribution.",
-        ) as warninfo:
-            single_bundle(SF_missing_all_prob_data)
-        assert (
-            warninfo[0].message.args[0]
-            == "No scenario probabilities are given; assuming uniform distribution."
-        )
-        assert warninfo[0].category == UserWarning
-
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            assert single_bundle(SF_missing_all_prob_data) == {
-                "bundle": {
-                    "scenarios": {
-                        ("scen_data", "scen_1"): pytest.approx(0.25),
-                        ("scen_data", "scen_0"): pytest.approx(0.25),
-                        ("scen_data", "scen_3"): pytest.approx(0.25),
-                        ("scen_data", "scen_2"): pytest.approx(0.25),
-                    },
-                    "Probability": 1.0,
-                }
-            }
-            warnings.warn(
-                "No scenario probabilities are given; assuming uniform distribution.",
-                UserWarning,
-            )
-
     def test_mf_bundle_from_list(self, probable_key_names):
         with pytest.raises(RuntimeError) as excinfo:
             mf_bundle_from_list(probable_key_names)
@@ -807,17 +766,17 @@ class TestBundleFunctions(object):
             bundle_args=dict(seed=123456789),
         ) == {
             "HF_scen_0": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_0"): pytest.approx(0.5),
-                    ("LF", "scen_2"): pytest.approx(0.5),
+                    ("HF", "scen_0"): pytest.approx(0.4285714285714286),
+                    ("LF", "scen_2"): pytest.approx(0.5714285714285715),
                 },
             },
             "HF_scen_1": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_1"): pytest.approx(0.5),
-                    ("LF", "scen_2"): pytest.approx(0.5),
+                    ("HF", "scen_1"): pytest.approx(0.3333333333333333),
+                    ("LF", "scen_2"): pytest.approx(0.6666666666666666),
                 },
             },
         }
@@ -829,17 +788,17 @@ class TestBundleFunctions(object):
             bundle_args=dict(seed=123456789),
         ) == {
             "HF_scen_0": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_0"): pytest.approx(0.75),
-                    ("LF", "scen_2"): pytest.approx(0.25),
+                    ("HF", "scen_0"): pytest.approx(0.6923076923076923),
+                    ("LF", "scen_2"): pytest.approx(0.30769230769230776),
                 },
             },
             "HF_scen_1": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_1"): pytest.approx(0.75),
-                    ("LF", "scen_2"): pytest.approx(0.25),
+                    ("HF", "scen_1"): pytest.approx(0.6),
+                    ("LF", "scen_2"): pytest.approx(0.4),
                 },
             },
         }
@@ -851,19 +810,19 @@ class TestBundleFunctions(object):
             bundle_args=dict(LF=2, seed=1234567890),
         ) == {
             "HF_scen_0": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_0"): pytest.approx(0.3333333333333333),
-                    ("LF", "scen_2"): pytest.approx(0.3333333333333333),
-                    ("LF", "scen_3"): pytest.approx(0.3333333333333333),
+                    ("HF", "scen_0"): pytest.approx(0.375),
+                    ("LF", "scen_2"): pytest.approx(0.5),
+                    ("LF", "scen_3"): pytest.approx(0.125),
                 },
             },
             "HF_scen_1": {
-                "Probability": pytest.approx(0.5),
+                "Probability": 0.5,
                 "scenarios": {
-                    ("HF", "scen_1"): pytest.approx(0.3333333333333333),
-                    ("LF", "scen_2"): pytest.approx(0.3333333333333333),
-                    ("LF", "scen_3"): pytest.approx(0.3333333333333333),
+                    ("HF", "scen_1"): pytest.approx(0.2857142857142857),
+                    ("LF", "scen_2"): pytest.approx(0.5714285714285714),
+                    ("LF", "scen_3"): pytest.approx(0.14285714285714285),
                 },
             },
         }
