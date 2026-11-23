@@ -131,7 +131,7 @@ def LF_newsvendor():
     )
 
 
-def MFrandom_newsvendor():
+def MFrandom_newsvendor(with_bundles=False):
     """
     A multi-fidelity newsvendor example.  This example includes both low-
     and high-fidelity scenarios that are bundled using the 'random'
@@ -145,16 +145,20 @@ def MFrandom_newsvendor():
         data=scenario_data["LF"],
         scenario_builder=LF_builder,
     )
-    sp.initialize_bundles(
-        scheme="mf_random",
-        LF=2,
-        seed=1234567890,
-        model_weight={"LF": 2.0, "HF": 1.0},
-    )
+
+    if with_bundles:
+        sp.initialize_bundles(
+            scheme="mf_random",
+            LF=2,
+            seed=1234567890,
+            model_weight={"LF": 2.0, "HF": 1.0},
+        )
+
+    # NOTE: This solution is for the EF, without bundles.
     return Munch(sp=sp, objective_value=122.58, unique_solution=False)
 
 
-def MFpaired_newsvendor():
+def MFpaired_newsvendor(with_bundles=False):
     """
     A multi-fidelity newsvendor example.  This example includes both low-
     and high-fidelity scenarios that are bundled using the 'paired'
@@ -168,7 +172,11 @@ def MFpaired_newsvendor():
         data=scenario_data["LF"],
         scenario_builder=LF_builder,
     )
-    sp.initialize_bundles(scheme="mf_paired")
+
+    if with_bundles:
+        sp.initialize_bundles(scheme="mf_paired")
+
+    # NOTE: This solution is for the EF, without bundles.
     return Munch(
         sp=sp,
         solution_values={
