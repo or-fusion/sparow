@@ -34,7 +34,13 @@ def norm(values, p):
 
 
 def finalize_ph_results(
-    sparow_soln_ph, *, sp, solutions, finalize_xbar_by_rounding=True
+    sparow_soln_ph,
+    *,
+    sp,
+    solutions,
+    finalize_xbar_by_rounding=True,
+    evaluate=None,
+    solver_options=None,
 ):
     """
     Finalize the results of the progressive hedging algorithm.
@@ -49,12 +55,23 @@ def finalize_ph_results(
         The solution pool manager.
     finalize_xbar_by_rounding : bool, optional
         Whether to round xbar values for binary/integer variables (default is True).
+    evaluate : callable, optional
+        Function used to evaluate a candidate first-stage point, with the same
+        signature and return value as ``sp.evaluate(x, solver_options=...)``
+        (default is ``sp.evaluate``).  This allows callers to supply e.g. a
+        parallel evaluation.
+    solver_options : dict, optional
+        Solver options used for the subproblem solves that evaluate candidate
+        points (default is None, i.e. only the stochastic program's own
+        solver options are used).
 
     Returns
     -------
     object
         The updated solution pool manager.
     """
+    if evaluate is None:
+        evaluate = sp.evaluate
     xbar = [
         sparow_soln_ph.variable(i).value for i in range(len(sparow_soln_ph.variables()))
     ]
@@ -69,7 +86,9 @@ def finalize_ph_results(
         #
         # Evaluate the final xbar, and keep if feasible.
         #
-        cont_sol = sp.evaluate([xbar[x] for x in sp.shared_variables()])
+        cont_sol = evaluate(
+            [xbar[x] for x in sp.shared_variables()], solver_options=solver_options
+        )
         if cont_sol.feasible:
             solutions.add(
                 variables=sparow_soln_ph.variables(),
@@ -87,7 +106,7 @@ def finalize_ph_results(
                 "\tRounding xbar values associated with binary and integer variables"
             )
             tmpx = [sp.round(x, xbar[x]) for x in sp.shared_variables()]
-            rounded_sol = sp.evaluate(tmpx)
+            rounded_sol = evaluate(tmpx, solver_options=solver_options)
             if rounded_sol.feasible:
                 variables = copy.copy(sparow_soln_ph.variables())
                 for v in variables:
@@ -518,14 +537,24 @@ class ProgressiveHedgingSolver(object):
                 policy=solnpool.PoolPolicy.keep_all,
             )
             for soln in all_iterations:
-                finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
+                finalize_ph_results(
+                    soln,
+                    sp=sp_finalize,
+                    solutions=self.solutions,
+                    solver_options=self.solver_options,
+                )
         else:
             soln = self.solutions[latest_soln]
             self.solutions.add_pool(
                 name="Finalized Last PH Solution",
                 policy=solnpool.PoolPolicy.keep_best,
             )
-            finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
+            finalize_ph_results(
+                soln,
+                sp=sp_finalize,
+                solutions=self.solutions,
+                solver_options=self.solver_options,
+            )
 
         sp_metadata.end_time = str(end_time)
         sp_metadata.time_elapsed = str(end_time - start_time)

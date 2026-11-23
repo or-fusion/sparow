@@ -47,15 +47,23 @@ def run_driver(nprocs, tmp_path):
 class TestProgressiveHedgingMPI(object):
 
     def test_matches_serial(self, tmp_path):
-        #for nprocs in (6, 7):
-        for nprocs in (6, ):
+        # 5 bundles: 6 ranks = 1 coordinator + 1 worker per bundle;
+        # 7 ranks adds an idle search rank that still helps with finalization.
+        for nprocs in (6, 7):
             proc, outfile = run_driver(nprocs, tmp_path)
             assert proc.returncode == 0, proc.stdout + proc.stderr
 
             results = json.loads(outfile.read_text())
-            mpi, serial = results["mpi"], results["serial"]
-            assert mpi["xbar"] == pytest.approx(serial["xbar"], rel=1e-6, abs=1e-6)
-            assert mpi["objective"] == pytest.approx(serial["objective"], rel=1e-6)
+            assert set(results) == {"default", "finalize_all_xbar", "solver_options"}
+            for config, res in results.items():
+                mpi, serial = res["mpi"], res["serial"]
+                label = f"nprocs={nprocs} config={config}"
+                assert mpi["xbar"] == pytest.approx(
+                    serial["xbar"], rel=1e-6, abs=1e-6
+                ), label
+                assert mpi["objective"] == pytest.approx(
+                    serial["objective"], rel=1e-6
+                ), label
 
     def test_too_few_processes(self, tmp_path):
         proc, _ = run_driver(5, tmp_path)
