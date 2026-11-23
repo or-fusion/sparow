@@ -99,6 +99,8 @@ def check_data_dict_keys(data, model0, bundle_args, dkey_required=False):
         pkey = PKEY
     else:
         pkey = None
-        logger.warning("No scenario probabilities are given; assuming uniform distribution.")
+        logger.warning(
+            "No scenario probabilities are given; assuming uniform distribution."
+        )
 
     return dkey, pkey
