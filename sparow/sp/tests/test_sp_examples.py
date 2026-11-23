@@ -6,6 +6,7 @@ from sparow.sp.examples import (
     HF_newsvendor,
     MFrandom_newsvendor,
     MFpaired_newsvendor,
+    disjunctive_newsvendor,
 )
 
 import pyomo.opt
@@ -52,6 +53,38 @@ def test_sp_simple_newsvendor(mip_solver):
         app.solution_values[str(M2.s[None, 2].x)]
     )
 
+
+
+@unittest.pytest.mark.parametrize("mip_solver", solvers)
+def test_sp_disjunctive_newsvendor(mip_solver):
+    app = disjunctive_newsvendor()
+    sp = app.sp
+
+    #
+    # The 'order' disjunct is mapped to its binary indicator variable
+    #
+    M1 = sp.create_subproblem("1")
+    assert sp.varcuid_to_int == {
+        pyo.ComponentUID("order.binary_indicator_var"): 0,
+        pyo.ComponentUID("x"): 1,
+    }
+    assert sp.get_variable_name(0) == "order.binary_indicator_var"
+    assert sp.get_variable_name(1) == "x"
+    assert not sp.continuous_fsv()
+
+    #
+    # Test subproblem solver logic (K=10):
+    #   d=15: ordering costs K + 15 = 25 > b*d = 22.5, so no order is placed
+    #   d=60: ordering costs K + 60 = 70 < b*d = 90, so 60 units are ordered
+    #
+    sp.solve(M1, solver=mip_solver)
+    assert pyo.value(M1.s[None, 1].x) == pytest.approx(0.0)
+    assert pyo.value(M1.s[None, 1].order.binary_indicator_var) == pytest.approx(0.0)
+
+    M2 = sp.create_subproblem("2")
+    sp.solve(M2, solver=mip_solver)
+    assert pyo.value(M2.s[None, 2].x) == pytest.approx(60.0)
+    assert pyo.value(M2.s[None, 2].order.binary_indicator_var) == pytest.approx(1.0)
 
 class TestMFNewsVendor:
     """
