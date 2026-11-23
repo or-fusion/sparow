@@ -54,7 +54,6 @@ def test_sp_simple_newsvendor(mip_solver):
     )
 
 
-
 @unittest.pytest.mark.parametrize("mip_solver", solvers)
 def test_sp_disjunctive_newsvendor(mip_solver):
     app = disjunctive_newsvendor()
@@ -85,6 +84,7 @@ def test_sp_disjunctive_newsvendor(mip_solver):
     sp.solve(M2, solver=mip_solver)
     assert pyo.value(M2.s[None, 2].x) == pytest.approx(60.0)
     assert pyo.value(M2.s[None, 2].order.binary_indicator_var) == pytest.approx(1.0)
+
 
 class TestMFNewsVendor:
     """
