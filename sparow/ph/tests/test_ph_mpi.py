@@ -25,7 +25,8 @@ driver = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run_ph_mpi.py
 
 def run_driver(nprocs, tmp_path):
     clean_env = {
-        k: v for k, v in os.environ.items()
+        k: v
+        for k, v in os.environ.items()
         if not k.startswith(("OMPI_", "PMIX_", "PMI_", "I_MPI_", "MPICH_", "SLURM_"))
     }
     outfile = tmp_path / "results.json"

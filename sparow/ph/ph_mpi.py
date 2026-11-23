@@ -488,9 +488,7 @@ class ProgressiveHedgingSolver_MPI(ProgressiveHedgingSolverBase):
                 tasks, stop_when=lambda reply: reply["obj_value"] is None
             )
         except RuntimeError as e:
-            raise RuntimeError(
-                f"ERROR evaluating a candidate solution:\n{e}"
-            ) from None
+            raise RuntimeError(f"ERROR evaluating a candidate solution:\n{e}") from None
 
         # Report the first infeasible bundle (in bundle order)
         for b in self._finalize_ids:
