@@ -449,7 +449,7 @@ class ProgressiveHedgingSolver(object):
             #       subproblems could have different values.  We need to assess the difference
             #       between the xbar that generated the current values.
             #
-            g = sum(
+            subproblem_xbar_diff = sum(
                 sp.bundles[b].probability
                 * norm(
                     [sp.get_variable_value(b, x) - xbar[x] for x in sfs_variables],
@@ -458,22 +458,22 @@ class ProgressiveHedgingSolver(object):
                 for b in sp.bundles
             )
             if self.normalize_convergence_norm:
-                g /= len(sfs_variables)
-            logger.info(f"g = {g}")
+                subproblem_xbar_diff /= len(sfs_variables)
+            logger.info(f"subproblem_xbar_diff = {subproblem_xbar_diff}")
 
-            G = norm(
+            iteration_xbar_diff= norm(
                 [xbar[x] - xbar_prev[x] for x in sfs_variables], self.convergence_norm
             )
             if self.normalize_convergence_norm:
-                G /= len(sfs_variables)
-            logger.info(f"G = {G}")
+                iteration_xbar_diff /= len(sfs_variables)
+            logger.info(f"iteration_xbar_diff = {iteration_xbar_diff}")
 
             # Step 9.1
             tic(
                 f"Archiving solution: {iteration}", logger=logger, level=logging.VERBOSE
             )
             latest_soln = self.archive_solution(
-                sp=sp, xbar=xbar, w=w, iteration=iteration, obj_lb=obj_lb, g=g
+                sp=sp, xbar=xbar, w=w, iteration=iteration, obj_lb=obj_lb, subproblem_xbar_diff=subproblem_xbar_diff
             )
             toc(f"Archiving solution - DONE", logger=logger, level=logging.VERBOSE)
 
@@ -485,14 +485,14 @@ class ProgressiveHedgingSolver(object):
                 time_last_iter=time_last_iter,
                 xbar=xbar,
                 rho=self.rho,
-                g=g,
-                G=G,
+                subproblem_xbar_diff=subproblem_xbar_diff,
+                iteration_xbar_diff=iteration_xbar_diff,
                 w=w,
             )
 
             # Step 10
-            if G + g < self.convergence_tolerance:
-                termination_condition = f"Termination: convergence tolerance ({G} + {g} < {self.convergence_tolerance})"
+            if iteration_xbar_diff + subproblem_xbar_diff < self.convergence_tolerance:
+                termination_condition = f"Termination: convergence tolerance ({iteration_xbar_diff} + {subproblem_xbar_diff} < {self.convergence_tolerance})"
                 logger.info(termination_condition)
                 break
 
@@ -560,12 +560,12 @@ class ProgressiveHedgingSolver(object):
         """
         logger.info("")
         logger.info("-" * 70)
-        logger.info(f"Iteration:        {kwds['iteration']}")
-        logger.info(f"obj_lb:           {kwds['obj_lb']}")
-        logger.info(f"conv_norm:        {kwds.get('g',None)}")
-        logger.info(f"xbar_diff_norm:   {kwds.get('G',None)}")
-        logger.info(f"time:             {kwds['time']}")
-        logger.info(f"time_last_iter:   {kwds['time_last_iter']}")
+        logger.info(f"Iteration:            {kwds['iteration']}")
+        logger.info(f"obj_lb:               {kwds['obj_lb']}")
+        logger.info(f"subproblem_xbar_diff: {kwds.get('subproblem_xbar_diff',None)}")
+        logger.info(f"iteration_xbar_diff:  {kwds.get('iteration_xbar_diff',None)}")
+        logger.info(f"time:                 {kwds['time']}")
+        logger.info(f"time_last_iter:       {kwds['time_last_iter']}")
         if logger.isEnabledFor(logging.VERBOSE):
             tmp = kwds["w"]
             tmp = {
