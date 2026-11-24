@@ -83,7 +83,9 @@ class SPModelWrapperforUQ:
 
         if name is None:
             if len(scenario_builders) != 1:
-                raise ValueError("Cannot infer model name because there are {len(scenario_builders)} scenario builders in sp.")
+                raise ValueError(
+                    "Cannot infer model name because there are {len(scenario_builders)} scenario builders in sp."
+                )
             name = list(scenario_builders.keys())[0]
         elif name not in scenario_builders:
             raise ValueError(
