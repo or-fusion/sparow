@@ -128,7 +128,7 @@ def scenario_creator(scenario_name):
 # results = ph.ph_main()
 
 
-def model_builder(scen, scen_args):
+def scenario_builder(scen, scen_args):
     model = pyo.ConcreteModel(scen["ID"])
     if scen["ID"] == "BelowAverageScenario":
         yields = [2, 2.4, 16]
@@ -182,9 +182,9 @@ def model_builder(scen, scen_args):
 
 
 # FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-# FarmerSP.initialize_model(model_builder=model_builder)
+# FarmerSP.add_scenarios(scenario_builder=scenario_builder)
 
-model_data = {
+scenario_data = {
     "scenarios": [
         dict(
             ID="BelowAverageScenario",
@@ -227,7 +227,7 @@ class TestSolverAgainstMPISPPY(object):
             print(ef_objval)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.initialize_model(model_data=model_data, model_builder=model_builder)
+        FarmerSP.add_scenarios(data=scenario_data, scenario_builder=scenario_builder)
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
             FarmerSP,
@@ -264,7 +264,7 @@ class TestSolverAgainstMPISPPY(object):
         mpi_objval = ph.Eobjective()
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.initialize_model(model_data=model_data, model_builder=model_builder)
+        FarmerSP.add_scenarios(data=scenario_data, scenario_builder=scenario_builder)
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
             FarmerSP,
@@ -316,7 +316,7 @@ class TestSolverAgainstMPISPPY(object):
             print("=" * 60)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.initialize_model(model_data=model_data, model_builder=model_builder)
+        FarmerSP.add_scenarios(data=scenario_data, scenario_builder=scenario_builder)
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
             FarmerSP,
@@ -357,7 +357,7 @@ class TestSolverAgainstMPISPPY(object):
             w_bar_mpisppy.append(row)
 
         FarmerSP = stochastic_program(first_stage_variables=["X[*]"])
-        FarmerSP.initialize_model(model_data=model_data, model_builder=model_builder)
+        FarmerSP.add_scenarios(data=scenario_data, scenario_builder=scenario_builder)
         ph = ProgressiveHedgingSolver()
         results = ph.solve(
             FarmerSP,

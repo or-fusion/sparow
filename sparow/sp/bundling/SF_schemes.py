@@ -2,7 +2,6 @@ import random
 from sklearn.cluster import KMeans
 import numpy as np
 import numbers
-import warnings
 
 import sparow.logs
 import sparow.sp.bundling.bundling_helper_functions as bf

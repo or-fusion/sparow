@@ -12,6 +12,10 @@ from .newsvendor.mf_newsvendor import (
     MFpaired_newsvendor,
 )
 from .newsvendor.newsvendor import simple_newsvendor, single_scenario_newsvendor
+from .newsvendor.disjunctive_newsvendor import (
+    disjunctive_newsvendor,
+    disjunctive_newsvendor_no_order,
+)
 
 from .absolute_value.absolute_value import (
     simple_absolute_value,

@@ -6,7 +6,6 @@ def initialize_bundles(
     *,
     scheme: str | None = None,
     models: list[str] | None = None,
-    default_model: str | None = None,
     model_data: dict[str, Any] | None = None,
     scenario_data: dict[str, Any] | None = None,
     **kwargs: Any,
@@ -20,8 +19,6 @@ def initialize_bundles(
         The bundling scheme to use. Defaults to "single_scenario".
     models : list, optional
         List of model names to include in the bundles.
-    default_model : str, optional
-        The default model name.
     model_data : dict, optional
         Dictionary containing model data.
     scenario_data : dict, optional
@@ -41,13 +38,11 @@ def initialize_bundles(
 
     if scheme == None:
         scheme = "single_scenario"
-    if models == None:
-        models = [default_model] + list(
-            sorted(model for model in scenario_data.keys() if model != default_model)
-        )
-    else:
+    if models is not None:
         for name in models:
             assert name in scenario_data
+    else:
+        models = list(sorted(scenario_data.keys()))
 
     assert len(models) > 0, "Cannot initialize bundles without model data"
     if "model_weight" in kwargs:

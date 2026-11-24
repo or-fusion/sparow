@@ -6,6 +6,8 @@ from sparow.sp.examples import (
     HF_newsvendor,
     MFrandom_newsvendor,
     simple_newsvendor,
+    disjunctive_newsvendor,
+    disjunctive_newsvendor_no_order,
 )
 from sparow.ef import ExtensiveFormSolver
 
@@ -95,3 +97,24 @@ class TestEFNewsvendor:
         assert obj_val == pytest.approx(app.objective_value)
         assert not app.unique_solution
         # The optimal x value is not unique, so we don't test its value
+
+
+@unittest.pytest.mark.parametrize("mip_solver", solvers)
+@unittest.pytest.mark.parametrize(
+    "example", [disjunctive_newsvendor, disjunctive_newsvendor_no_order]
+)
+def test_disjunctive_newsvendor(mip_solver, example):
+    app = example()
+    solver = ExtensiveFormSolver()
+    solver.set_options(solver=mip_solver)
+    results = solver.solve(app.sp)
+    results_dict = results.to_dict()
+    soln = next(iter(results_dict["solutions"].values()))
+
+    obj_val = soln["objectives"][0]["value"]
+    assert obj_val == pytest.approx(app.objective_value)
+    assert app.unique_solution
+    values = {v["name"]: v["value"] for v in soln["variables"]}
+    assert set(values) == set(app.solution_values)
+    for name, value in app.solution_values.items():
+        assert values[name] == pytest.approx(value)

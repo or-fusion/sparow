@@ -9,9 +9,10 @@ import pyomo.core.base.indexed_component
 import pyomo.environ as pyo
 import pyomo.repn
 import pyomo.util.vars_from_expressions as vfe
+from pyomo.gdp import Disjunct, Disjunction
 
 import sparow.logs
-from .sp import StochasticProgram, initialize_bundles, validate_scenarios
+from .sp import StochasticProgram, validate_scenarios, initialize_bundles
 from .replace_variables_transformation import ReplaceVariablesTransformation
 
 logger = sparow.logs.logger
@@ -43,26 +44,42 @@ def find_objective(model: Any) -> Any:
     return obj
 
 
-def find_variables(model: Any) -> Any:
+def _is_disjunction_component(comp: Any) -> bool:
     """
-    Generator function to find all active variables in a Pyomo model.
+    Return True if ``comp`` is a Pyomo GDP disjunct/disjunction component (or component data).
+    """
+    ctype = getattr(comp, "ctype", None)
+    return ctype is Disjunct or ctype is Disjunction
+
+
+def _resolve_variable(comp: Any) -> Any:
+    """
+    Map a component to the Pyomo variable that should be used in the model.
+
+    Variables are returned as-is.  If the component is a Pyomo disjunction, then
+    its ``binary_indicator_var`` attribute is used.
 
     Parameters
     ----------
-    model : pyomo.ConcreteModel
-        The Pyomo model to search for variables.
+    comp : pyomo component data
+        A (scalar) variable or disjunction object.
 
-    Yields
-    ------
+    Returns
+    -------
     pyomo.Var
-        Active variables in the model.
+        The variable associated with ``comp``.
+
+    Raises
+    ------
+    AssertionError
+        If ``comp`` is a disjunction without a ``binary_indicator_var`` attribute.
     """
-    for comp in model.component_data_objects(pyo.Var, active=True):
-        if comp.is_indexed():
-            for var in comp.values():
-                yield var
-        else:
-            yield comp
+    if _is_disjunction_component(comp):
+        assert hasattr(
+            comp, "binary_indicator_var"
+        ), f"Pyomo error: Disjunction '{comp.name}' has no 'binary_indicator_var' attribute"
+        return comp.binary_indicator_var
+    return comp
 
 
 class StochasticProgram_Pyomo_Base(StochasticProgram):
@@ -369,7 +386,7 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         model_fidelities : dict, optional
             Dictionary specifying model fidelities.
         cache_bundles : bool, optional
-            Whether to cache bundles (default is False).
+            Whether to cache bundles (default is True).
         compact_repn : bool, optional
             Whether to use compact representation (default is True).
 
@@ -378,15 +395,17 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         pyomo.ConcreteModel
             The extensive form model.
         """
+        if self._bundles is not None and len(self.bundles) > 1:
+            logger.info(
+                "Ignoring the existing bundle when creating the EF!  The existing bundle information is inconsistent with the format needed to create an EF representation.  An EF representation can only be created with a single bundle, but {len(self.bundles)} are configured for the stochastic program."
+            )
+
         if cache_bundles:
             _int_toFirstStageVar = self.int_to_FirstStageVar
             _model_cache = self._model_cache
             _bundles = self.bundles
 
-        if model_fidelities is None:
-            self.initialize_bundles(scheme="single_bundle")
-        else:
-            self.initialize_bundles(scheme="single_bundle", models=model_fidelities)
+        self.initialize_bundles(scheme="single_bundle", models=model_fidelities)
         assert (
             len(self.bundles) == 1
         ), f"The extensive form should only have one bundle: {len(self.bundles)}"
@@ -397,7 +416,7 @@ class StochasticProgram_Pyomo_Base(StochasticProgram):
         if cache_bundles:
             self.int_to_FirstStageVar = _int_toFirstStageVar
             self._model_cache = _model_cache
-            self.bundles = _bundles
+            self._bundles = _bundles
         return M
 
 
@@ -411,7 +430,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         List of string names of first-stage variables.
     objective : str or None
         Name of the objective function.
-    model_builder : dict
+    scenario_builder : dict
         Dictionary mapping model names to their builder functions.
     """
 
@@ -422,22 +441,20 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         #   [ "x", "b.y", "b[*].z[*,*]" ]
         #
         self.first_stage_variables = first_stage_variables
-        # WEH - We may have different objectives for different model_builders?
+        # WEH - We may have different objectives for different scenario_builders?
         self.objective: str | None = None
-        self.model_builder: dict = {}
+        self.scenario_builder: dict = {}
 
-    def initialize_model(
+    def add_scenarios(
         self,
         *,
         name: str | None = None,
         filename: str | None = None,
-        model_data: dict | None = None,
-        model_builder: Any | None = None,
-        default: bool = True,
-        **kwargs: Any,
+        data: dict | None = None,
+        scenario_builder: Any | None = None,
     ) -> None:
         """
-        Initialize a model with data and builder function.
+        Add the scenarios of a model, with their data and a scenario builder function.
 
         Parameters
         ----------
@@ -445,51 +462,37 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             Name of the model.
         filename : str, optional
             Path to a JSON file containing model data.
-        model_data : dict, optional
-            Dictionary containing model data.  The optional "data" key
+        data : dict, optional
+            Dictionary containing model and scenario data.  The optional "data" key
             maps to model-level data, and the "scenarios" key maps to a
             list of scenario specifications:
             ``{"data": {...}, "scenarios": [{"ID": ID, "data": {...}, "probability": p}, ...]}``.
             The "data" and "probability" keys are optional.  The scenario ID is passed to
-            the model builder as ``data["ID"]``.
-        model_builder : function, optional
-            Function to build the model.
-        default : bool, optional
-            Whether this is the default model (default is True).
-        **kwargs : dict
-            Additional keyword arguments.
+            the scenario builder as ``data["ID"]``.
+        scenario_builder : function, optional
+            Function to build the model for a scenario.
         """
-        if default:
-            self.default_model = name
-
-        if filename is not None:
-            with open(f"{filename}", "r") as file:
-                model_data = json.load(file)
-
         if name in self.model_data:
             if name is not None:
                 logger.warning(
                     f"Initializing model with name '{name}', which already has been initialized!  This may be a bug in the setup of this StochasticProgram instance."
                 )
-        if model_data is not None:
-            self.model_data[name] = model_data.get("data", {})
+
+        if scenario_builder is not None:
+            self.scenario_builder[name] = scenario_builder
+
+        if filename is not None:
+            with open(f"{filename}", "r") as file:
+                data = json.load(file)
+
+        if data is not None:
+            self.model_data[name] = data.get("data", {})
             self.scenario_data[name] = validate_scenarios(
-                model_data.get("scenarios", []), name
+                data.get("scenarios", []), name
             )
         else:
             self.model_data[name] = {}
             self.scenario_data[name] = {}
-
-        if model_builder is not None:
-            self.model_builder[name] = model_builder
-        if model_data is not None and default:
-            self.set_bundles(
-                initialize_bundles(
-                    models=[name],
-                    model_data=self.model_data,
-                    scenario_data=self.scenario_data,
-                )
-            )
 
     def _first_stage_variables_generator(self, *, M: Any) -> Any:
         """
@@ -515,8 +518,12 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             comp = cuid.find_component_on(M)
             assert comp is not None, "Pyomo error: Unknown variable '%s'" % varname
             if comp.is_indexed():
-                for var in comp.values():
+                for compdata in comp.values():
+                    var = _resolve_variable(compdata)
                     yield var.name, var
+            elif _is_disjunction_component(comp):
+                var = _resolve_variable(comp)
+                yield var.name, var
             else:
                 yield varname, comp
 
@@ -561,7 +568,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             If data keys are already specified.
         """
         model_name, scenario = scenario_tuple
-        data = copy.copy(self.app_data)
+        data = copy.copy(self.common_data)
         for k, v in self.model_data.get(model_name, {}).items():
             assert k not in data, f"Model data for {k} has already been specified!"
             data[k] = v
@@ -571,7 +578,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             data[k] = v
         assert "ID" not in data, f"The data key 'ID' is reserved for the scenario ID"
         data["ID"] = scenario
-        return self.model_builder[model_name](data, {})
+        return self.scenario_builder[model_name](data, {})
 
     def get_objective_coef(self, v: int, cached: bool = False) -> float:
         """
@@ -603,7 +610,6 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
 
             self.set_bundles(
                 initialize_bundles(
-                    models=[self.default_model],
                     scheme="single_scenario",
                     model_data=self.model_data,
                     scenario_data=self.scenario_data,
@@ -633,7 +639,7 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
                     )
 
             # Setup single-scenario bundles with the default model
-            self.bundles = _bundles
+            self._bundles = _bundles
             self._model_cache = _model_cache
             self.int_to_FirstStageVar = _int_toFirstStageVar
 
@@ -678,52 +684,59 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         pyomo.ConcreteModel
             The extensive form model for the bundle.
         """
-        if cached and b in self._model_cache:
+        if not cached:
+            return self.create_bundle_EF_repn(
+                b=b,
+                w=w,
+                x_bar=x_bar,
+                rho=rho,
+                cached=False,
+                compact_repn=compact_repn,
+            )
+
+        if b in self._model_cache:
             M = self._model_cache[b]
+            #
+            # Constructing any other model for this bundle (e.g. an uncached
+            # model in evaluate()) re-binds int_to_FirstStageVar[b] to the
+            # variables of that model.  Re-bind it to the cached model, so
+            # get_variable_value() and fix_variable() act on the model that
+            # is returned.
+            #
+            self.int_to_FirstStageVar[b] = dict(M._sparow_int_to_FirstStageVar)
+        else:
+            # Note: this also adds the model to the cache
+            M = self.create_bundle_EF_repn(
+                b=b,
+                w=w,
+                x_bar=x_bar,
+                rho=rho,
+                cached=True,
+                compact_repn=compact_repn,
+            )
 
-            if rho is None:
-                for i, x in self.int_to_FirstStageVar[b].items():
-                    M.sparow_params.rho[i].set_value(0.0)
+        #
+        # A cached model is constructed with mutable parameters that are
+        # initialized to zero, so set their values here.  This is needed both
+        # when the model is retrieved from the cache *and* when it was just
+        # constructed: the first call for a bundle may already include values
+        # for rho, w and x_bar (e.g. when a parallel solver first assigns a
+        # bundle to a process in a later PH iteration).
+        #
+        params = M.sparow_params
+        for name, values in (("rho", rho), ("w", w), ("x_bar", x_bar)):
+            param = getattr(params, name)
+            if values is None:
+                for i in param:
+                    param[i].set_value(0.0)
             else:
-                for i, x in self.int_to_FirstStageVar[b].items():
-                    M.sparow_params.rho[i].set_value(rho[i])
+                assert name == "rho" or len(values) == len(
+                    param
+                ), f"Inconsistent data sizes between param.{name} ({len(param)}) and {name} ({len(values)})"
+                for i in param:
+                    param[i].set_value(values[i])
 
-            if w is None:
-                for i in M.sparow_params.w:
-                    M.sparow_params.w[i].set_value(0.0)
-            else:
-                assert len(w) == len(
-                    M.sparow_params.w
-                ), f"Inconsistent data sizes between param.w ({len(M.sparow_params.w)}) and w ({len(w)})"
-                for i in M.sparow_params.w:
-                    M.sparow_params.w[i].set_value(w[i])
-
-            if x_bar is None:
-                for i in M.sparow_params.x_bar:
-                    M.sparow_params.x_bar[i].set_value(0.0)
-            else:
-                assert len(x_bar) == len(
-                    M.sparow_params.x_bar
-                ), f"Inconsistent data sizes between param.x_bar ({len(M.sparow_params.x_bar)}) and x_bar ({len(x_bar)})"
-                for i in M.sparow_params.x_bar:
-                    M.sparow_params.x_bar[i].set_value(x_bar[i])
-
-            return M
-
-        EF_model = self.create_bundle_EF_repn(
-            b=b,
-            w=w,
-            x_bar=x_bar,
-            rho=rho,
-            cached=cached,
-            compact_repn=compact_repn,
-        )
-
-        # Cache the model if the 'cached' flag has been specified
-        if cached:
-            self._model_cache[b] = EF_model
-
-        return EF_model
+        return M
 
     def create_bundle_EF_repn(
         self,
@@ -773,8 +786,11 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
                 b=b, w=w, x_bar=x_bar, rho=rho, cached=cached
             )
 
-        # Cache the model if the 'cached' flag has been specified
+        # Cache the model if the 'cached' flag has been specified.  The
+        # first-stage variable map of the model is saved with it, so it can be
+        # restored when the cached model is reused (see create_bundle_EF).
         if cached:
+            EF_model._sparow_int_to_FirstStageVar = dict(self.int_to_FirstStageVar[b])
             self._model_cache[b] = EF_model
 
         return EF_model

@@ -72,30 +72,32 @@ class SPModelWrapperforUQ:
         if not isinstance(scenario_sampler, ScenarioSamplerProtocol):
             raise TypeError("scenario_sampler must satisfy ScenarioSamplerProtocol.")
 
-        model_builders = getattr(sp, "model_builder", None)
-        if not isinstance(model_builders, dict) or not hasattr(
+        scenario_builders = getattr(sp, "scenario_builder", None)
+        if not isinstance(scenario_builders, dict) or not hasattr(
             sp, "first_stage_variables"
         ):
             raise TypeError(
                 "sp must be a SPAROW stochastic program created with "
-                "sparow.sp.stochastic_program()."
+                f"sparow.sp.stochastic_program().  {type(sp)=}"
             )
 
         if name is None:
-            name = sp.default_model
-        if name not in model_builders:
+            if len(scenario_builders) != 1:
+                raise ValueError("Cannot infer model name because there are {len(scenario_builders)} scenario builders in sp.")
+            name = list(scenario_builders.keys())[0]
+        elif name not in scenario_builders:
             raise ValueError(
                 f"The stochastic program does not have a model builder for "
-                f"model '{name}'.  Call sp.initialize_model(name=..., "
-                f"model_builder=...) before creating SPModelWrapperforUQ."
+                f"model '{name}'.  Call sp.add_scenarios(name=..., "
+                f"scenario_builder=...) before creating SPModelWrapperforUQ."
             )
 
         self._name = name
         self._fidelity = fidelity
         self._scenario_population = scenario_population
         self._scenario_sampler = scenario_sampler
-        self._model_builder = model_builders[name]
-        self._app_data = dict(sp.app_data)
+        self._scenario_builder = scenario_builders[name]
+        self._common_data = dict(sp.common_data)
         self._model_level_data = dict(sp.model_data.get(name, {}))
         self._first_stage_variables = list(sp.first_stage_variables or [])
 
@@ -150,18 +152,18 @@ class SPModelWrapperforUQ:
         """
         return self._scenario_sampler
 
-    def model_builder(self):
+    def scenario_builder(self):
         """
         Return the underlying SPAROW model-builder function.
         """
-        return self._model_builder
+        return self._scenario_builder
 
-    def app_data(self) -> Dict[str, Any]:
+    def common_data(self) -> Dict[str, Any]:
         """
         Return the application data dictionary that is used to
         initialize the stochastic program.
         """
-        return self._app_data
+        return self._common_data
 
     def first_stage_variables(self) -> List[str]:
         """
@@ -239,11 +241,11 @@ class SPModelWrapperforUQ:
 
         return sampled_scenarios
 
-    def build_model_data(
+    def build_scenario_data(
         self, sampled_scenarios: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Build the model_data dictionary expected by SPAROW.
+        Build the scenario_data dictionary expected by SPAROW.
 
         Sampled scenarios may contain metadata (e.g. 'Original_ID' and
         'Population_Index'), which is excluded from the SPAROW model data.
@@ -260,22 +262,22 @@ class SPModelWrapperforUQ:
     # Solver / evaluation helpers
     # ------------------------------------------------------------------
 
-    def _build_stochastic_program(self, model_data: Dict[str, Any]):
+    def _build_stochastic_program(self, scenario_data: Dict[str, Any]):
         """
         Build and return a SPAROW stochastic_program object for this model.
         """
         sp = stochastic_program(first_stage_variables=self._first_stage_variables)
-        sp.initialize_application(app_data=self._app_data)
-        sp.initialize_model(
+        sp.configure(common_data=self._common_data)
+        sp.add_scenarios(
             name=self._name,
-            model_data=model_data,
-            model_builder=self._model_builder,
+            data=scenario_data,
+            scenario_builder=self._scenario_builder,
         )
         return sp
 
     def solve_extensive_form(
         self,
-        model_data: Dict[str, Any],
+        scenario_data: Dict[str, Any],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
         loglevel: str = "INFO",
@@ -297,7 +299,7 @@ class SPModelWrapperforUQ:
 
         solver.set_options(**solver_kwargs)
 
-        sp = self._build_stochastic_program(model_data)
+        sp = self._build_stochastic_program(scenario_data)
         results = solver.solve(sp)
 
         self._first_stage_variable_order = list(
@@ -367,7 +369,7 @@ class SPModelWrapperforUQ:
     def evaluate_first_stage_solution(
         self,
         xhat: Dict[str, float],
-        model_data: Dict[str, Any],
+        scenario_data: Dict[str, Any],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> float:
@@ -379,7 +381,7 @@ class SPModelWrapperforUQ:
         float
             Objective value of the fixed first-stage candidate solution.
         """
-        sp = self._build_stochastic_program(model_data)
+        sp = self._build_stochastic_program(scenario_data)
         sp.set_solver(solver_name)
 
         x_vector = self.first_stage_solution_dict_to_vector(xhat)
@@ -410,12 +412,12 @@ class SPModelWrapperforUQ:
         """
         Solve the SAA problem on one sampled scenario batch.
 
-        This is a convenience wrapper around build_model_data and
+        This is a convenience wrapper around build_scenario_data and
         solve_extensive_form.
         """
-        model_data = self.build_model_data(sampled_scenarios)
+        scenario_data = self.build_scenario_data(sampled_scenarios)
         return self.solve_extensive_form(
-            model_data=model_data,
+            scenario_data=scenario_data,
             solver_name=solver_name,
             solver_options=solver_options,
         )
@@ -430,10 +432,10 @@ class SPModelWrapperforUQ:
         """
         Evaluate a fixed first-stage candidate solution on one sampled scenario batch.
         """
-        model_data = self.build_model_data(sampled_scenarios)
+        scenario_data = self.build_scenario_data(sampled_scenarios)
         return self.evaluate_first_stage_solution(
             xhat=xhat,
-            model_data=model_data,
+            scenario_data=scenario_data,
             solver_name=solver_name,
             solver_options=solver_options,
         )

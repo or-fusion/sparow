@@ -1,8 +1,8 @@
-[![Pytest Tests](https://github.com/sandialabs/sparow/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/sandialabs/sparow/actions/workflows/pytest.yml?query=branch%3Amain)
-[![codecov](https://codecov.io/gh/sandialabs/sparow/branch/main/graph/badge.svg)](https://codecov.io/gh/sandialabs/sparow)
+[![Pytest Tests](https://github.com/or-fusion/sparow/actions/workflows/pytest.yml/badge.svg?branch=main)](https://github.com/or-fusion/sparow/actions/workflows/pytest.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/or-fusion/sparow/branch/main/graph/badge.svg)](https://codecov.io/gh/or-fusion/sparow)
 [![Documentation Status](https://readthedocs.org/projects/sparow/badge/?version=latest)](http://sparow.readthedocs.org/en/latest/)
-[![GitHub contributors](https://img.shields.io/github/contributors/sandialabs/sparow.svg)](https://github.com/sandialabs/sparow/graphs/contributors)
-[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/sandialabs/sparow.svg?label=merged+PRs)](https://github.com/sandialabs/sparow/pulls?q=is:pr+is:merged)
+[![GitHub contributors](https://img.shields.io/github/contributors/or-fusion/sparow.svg)](https://github.com/or-fusion/sparow/graphs/contributors)
+[![Merged PRs](https://img.shields.io/github/issues-pr-closed-raw/or-fusion/sparow.svg?label=merged+PRs)](https://github.com/or-fusion/sparow/pulls?q=is:pr+is:merged)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 # sparow
@@ -17,7 +17,7 @@ programming.
 Sparow requires the installation of or-topas, which can be installed using **pip** as follows:
 
 ```bash
-git clone git@github.com:sandialabs/or_topas.git
+git clone git@github.com:or-fusion/or_topas.git
 cd or_topas
 pip install -e .
 cd ..
@@ -26,7 +26,7 @@ cd ..
 Developers should install Sparow using **pip** as follows:
 
 ```bash
-git clone git@github.com:sandialabs/sparow.git
+git clone git@github.com:or-fusion/sparow.git
 cd sparow
 pip install -e .
 cd ..

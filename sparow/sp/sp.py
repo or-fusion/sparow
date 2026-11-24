@@ -104,14 +104,12 @@ class StochasticProgram(object):
         Set of binary or integer first-stage variables.
     bundles : BundleObj or None
         Bundles for the stochastic program.
-    app_data : dict
-        Dictionary of application data.
+    common_data : dict
+        Dictionary of data common to all models and scenarios.
     model_data : dict
         Dictionary mapping model names to their data.
     scenario_data : dict
         Dictionary mapping model and scenario names to their data.
-    default_model : str or None
-        The name of the default model used to evaluate solutions.
     """
 
     def __init__(self) -> None:
@@ -120,50 +118,55 @@ class StochasticProgram(object):
         self._binary_or_integer_fsv: set = set()
 
         # Bundles (must be initialized later)
-        self.bundles: Any | None = None
-        # Dictionary of application data
-        self.app_data: dict[str, Any] = {}
+        self._bundles: Any | None = None
+        # Dictionary of common model data.
+        self.common_data: dict = {}
         # model_data[model_name] -> data
         self.model_data: dict[str, Any] = {}
         # scenario_data[model_name][scenario_name] -> {"data": ..., "probability": ...}
         self.scenario_data: dict[str, dict[str, Any]] = {}
 
-        # The name of the default model used to evaluate
-        # solutions
-        self.default_model: str | None = None
         # Indicates if there are multifidelity bundles:
         self.is_multifidelity = False
 
-    def initialize_application(
+    def configure(
         self,
         *,
         filename: str | None = None,
-        app_data: dict[str, Any] | None = None,
-        **kwargs: Any,
+        common_data: dict[str, Any] | None = None,
     ) -> None:
         """
-        Initialize the application with data.
+        Configure the stochastic program with data common to all models and scenarios.
 
         Parameters
         ----------
         filename : str, optional
-            Path to a JSON file containing application data.
-        app_data : dict, optional
-            Dictionary containing application data.
+            Path to a JSON file containing common data.
+        common_data : dict, optional
+            Dictionary containing data common to all models and scenarios.
         **kwargs : dict
             Additional keyword arguments.
         """
         self._timing = {}
         if filename is not None:
             with open(f"{filename}", "r") as file:
-                self.app_data = json.load(file)
-        elif app_data is not None:
-            self.app_data = app_data
+                self.common_data = json.load(file)
+        elif common_data is not None:
+            self.common_data = common_data
 
     def get_timing(self, model):
         return self._timing.get(id(model), dict())
 
-    # DEPRECATED METHOD(?)
+    @property
+    def bundles(self):
+        if self._bundles is None:
+            self.initialize_bundles(scheme="single_scenario")
+        return self._bundles
+
+    @bundles.setter
+    def bundles(self, value):
+        self._bundles = value
+
     def initialize_bundles(
         self,
         *,
@@ -187,7 +190,6 @@ class StochasticProgram(object):
             initialize_bundles(
                 scheme=scheme,
                 models=models,
-                default_model=self.default_model,
                 model_data=self.model_data,
                 scenario_data=self.scenario_data,
                 **kwargs,
@@ -204,7 +206,7 @@ class StochasticProgram(object):
         bundles : BundleObj
             The bundles to set.
         """
-        self.bundles = bundles
+        self._bundles = bundles
 
     def get_bundles(self) -> dict[str, Any] | None:
         """
@@ -215,9 +217,9 @@ class StochasticProgram(object):
         dict or None
             The bundles as a dictionary, or None if not initialized.
         """
-        if self.bundles is None:
+        if self._bundles is None:
             return None
-        return munch.unmunchify(self.bundles._bundles)
+        return munch.unmunchify(self._bundles._bundles)
 
     def save_bundles(
         self, json_filename: str, indent: int | None = None, sort_keys: bool = False
@@ -234,7 +236,7 @@ class StochasticProgram(object):
         sort_keys : bool, optional
             Whether to sort keys in the JSON output.
         """
-        self.bundles.dump(json_filename, indent=indent, sort_keys=sort_keys)
+        self._bundles.dump(json_filename, indent=indent, sort_keys=sort_keys)
 
     def load_bundles(self, json_filename: str) -> None:
         """
@@ -518,10 +520,6 @@ class StochasticProgram(object):
         if solver_options is None:
             solver_options = {}
 
-        # Setup single-scenario bundles with the default model
-        _bundles = self.bundles
-        self.initialize_bundles(models=[self.default_model], scheme="single_scenario")
-
         obj_value = {}
         M = {}
         for b in self.bundles:
@@ -545,8 +543,5 @@ class StochasticProgram(object):
         retval = munch.Munch(
             feasible=True, objective=obj, variables=self.get_variables()
         )
-
-        # Reset the bundles
-        self.set_bundles(_bundles)
 
         return retval

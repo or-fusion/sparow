@@ -21,10 +21,10 @@ All Sparow formulations follow this pattern:
    from sparow.sp import stochastic_program
 
    # 1. Define application data (constants)
-   app_data = {...}
+   common_data = {...}
 
    # 2. Define model data (scenarios)
-   model_data = {"scenarios": [...]}
+   scenario_data = {"scenarios": [...]}
 
    # 3. Define builder function
    def builder(data, args):
@@ -35,10 +35,10 @@ All Sparow formulations follow this pattern:
    sp = stochastic_program(first_stage_variables=[...])
 
    # 5. Initialize application
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
    # 6. Initialize model
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
 Let's explore each component in detail using the newsvendor example.
 
@@ -50,10 +50,10 @@ Application data contains problem parameters that are constant across all scenar
 .. code-block:: python
 
    # Newsvendor example: application data
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
    # General pattern:
-   app_data = {
+   common_data = {
        'param1': value1,
        'param2': value2,
        # ... other constant parameters
@@ -72,7 +72,7 @@ Model data defines scenario-specific information:
 .. code-block:: python
 
    # Newsvendor example: model data
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}},
            {"ID": 2, "data": {"d": 60}},
@@ -81,7 +81,7 @@ Model data defines scenario-specific information:
    }
 
    # General pattern:
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"param1": value1, "param2": value2, ...}},
            {"ID": 2, "data": {"param1": value3, "param2": value4, ...}},
@@ -103,7 +103,7 @@ You can specify probabilities for each scenario:
 
 .. code-block:: python
 
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}, "probability": 0.1},
            {"ID": 2, "data": {"d": 60}, "probability": 0.6},
@@ -128,7 +128,7 @@ The builder function creates a Pyomo model for a single scenario:
        Parameters
        ----------
        data : dict
-           Contains app_data + scenario-specific data
+           Contains common_data + scenario-specific data
        args : dict
            Additional arguments (optional)
 
@@ -138,9 +138,9 @@ The builder function creates a Pyomo model for a single scenario:
            Model for this scenario
        """
        # Extract parameters
-       b = data["b"]  # From app_data
-       c = data["c"]  # From app_data
-       h = data["h"]  # From app_data
+       b = data["b"]  # From common_data
+       c = data["c"]  # From common_data
+       h = data["h"]  # From common_data
        d = data["d"]  # From scenario data
 
        # Create Pyomo model
@@ -160,7 +160,7 @@ The builder function creates a Pyomo model for a single scenario:
 **The `data` Parameter:**
 
 The `data` dictionary contains:
-- All keys from `app_data`
+- All keys from `common_data`
 - All keys from the model-level `"data"` dictionary (if specified)
 - All keys from the `"data"` dictionary of the specific scenario
 - Special key `"ID"` with the scenario ID (i.e., the `"ID"` value of the
@@ -209,10 +209,10 @@ Load application data into the stochastic program:
 .. code-block:: python
 
    # From dictionary
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
    # From JSON file
-   sp.initialize_application(filename="app_data.json")
+   sp.configure(filename="common_data.json")
 
 This step loads the constant parameters that will be used across all scenarios.
 
@@ -224,15 +224,15 @@ Load model data and register the builder function:
 .. code-block:: python
 
    # From dictionary
-   sp.initialize_model(
-       model_data=model_data,
-       model_builder=builder
+   sp.add_scenarios(
+       data=scenario_data,
+       scenario_builder=builder
    )
 
    # From JSON file
-   sp.initialize_model(
-       filename="model_data.json",
-       model_builder=builder
+   sp.add_scenarios(
+       filename="scenario_data.json",
+       scenario_builder=builder
    )
 
 **What This Does:**
@@ -253,10 +253,10 @@ Here's a complete formulation using the newsvendor problem:
    import pyomo.environ as pyo
 
    # Step 1: Application data (constants)
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
    # Step 2: Model data (scenarios)
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}},
            {"ID": 2, "data": {"d": 60}},
@@ -294,10 +294,10 @@ Here's a complete formulation using the newsvendor problem:
    sp = stochastic_program(first_stage_variables=["x"])
 
    # Step 5: Initialize application
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
    # Step 6: Initialize model
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
    # Formulation is now complete and ready to solve
    print(f"Created stochastic program with {len(sp.scenario_data[None])} scenarios")

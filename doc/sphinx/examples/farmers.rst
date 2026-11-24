@@ -242,7 +242,7 @@ Sensitivity Analysis
 
    def sensitivity_analysis(app):
        """Perform sensitivity analysis on crop prices."""
-       base_data = app.app_data.copy()
+       base_data = app.common_data.copy()
        sensitivities = []
 
        # Vary crop prices
@@ -255,7 +255,7 @@ Sensitivity Analysis
            new_data['prices'] = [p * multiplier for p in base_data.get('prices', [1.0])]
 
            # Create new application
-           new_app = MFfarmers(app_data=new_data)
+           new_app = MFfarmers(common_data=new_data)
 
            # Solve
            solver = ExtensiveFormSolver()
