@@ -9,6 +9,7 @@ import pyomo.core.base.indexed_component
 import pyomo.environ as pyo
 import pyomo.repn
 import pyomo.util.vars_from_expressions as vfe
+from pyomo.gdp import Disjunct, Disjunction
 
 import sparow.logs
 from .sp import StochasticProgram, validate_scenarios, initialize_bundles
@@ -43,26 +44,42 @@ def find_objective(model: Any) -> Any:
     return obj
 
 
-def find_variables(model: Any) -> Any:
+def _is_disjunction_component(comp: Any) -> bool:
     """
-    Generator function to find all active variables in a Pyomo model.
+    Return True if ``comp`` is a Pyomo GDP disjunct/disjunction component (or component data).
+    """
+    ctype = getattr(comp, "ctype", None)
+    return ctype is Disjunct or ctype is Disjunction
+
+
+def _resolve_variable(comp: Any) -> Any:
+    """
+    Map a component to the Pyomo variable that should be used in the model.
+
+    Variables are returned as-is.  If the component is a Pyomo disjunction, then
+    its ``binary_indicator_var`` attribute is used.
 
     Parameters
     ----------
-    model : pyomo.ConcreteModel
-        The Pyomo model to search for variables.
+    comp : pyomo component data
+        A (scalar) variable or disjunction object.
 
-    Yields
-    ------
+    Returns
+    -------
     pyomo.Var
-        Active variables in the model.
+        The variable associated with ``comp``.
+
+    Raises
+    ------
+    AssertionError
+        If ``comp`` is a disjunction without a ``binary_indicator_var`` attribute.
     """
-    for comp in model.component_data_objects(pyo.Var, active=True):
-        if comp.is_indexed():
-            for var in comp.values():
-                yield var
-        else:
-            yield comp
+    if _is_disjunction_component(comp):
+        assert hasattr(
+            comp, "binary_indicator_var"
+        ), f"Pyomo error: Disjunction '{comp.name}' has no 'binary_indicator_var' attribute"
+        return comp.binary_indicator_var
+    return comp
 
 
 class StochasticProgram_Pyomo_Base(StochasticProgram):
@@ -501,8 +518,12 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
             comp = cuid.find_component_on(M)
             assert comp is not None, "Pyomo error: Unknown variable '%s'" % varname
             if comp.is_indexed():
-                for var in comp.values():
+                for compdata in comp.values():
+                    var = _resolve_variable(compdata)
                     yield var.name, var
+            elif _is_disjunction_component(comp):
+                var = _resolve_variable(comp)
+                yield var.name, var
             else:
                 yield varname, comp
 
