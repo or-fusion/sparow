@@ -463,7 +463,7 @@ class ProgressiveHedgingSolver(object):
                 subproblem_xbar_diff /= len(sfs_variables)
             logger.info(f"subproblem_xbar_diff = {subproblem_xbar_diff}")
 
-            iteration_xbar_diff= norm(
+            iteration_xbar_diff = norm(
                 [xbar[x] - xbar_prev[x] for x in sfs_variables], self.convergence_norm
             )
             if self.normalize_convergence_norm:
@@ -475,7 +475,12 @@ class ProgressiveHedgingSolver(object):
                 f"Archiving solution: {iteration}", logger=logger, level=logging.VERBOSE
             )
             latest_soln = self.archive_solution(
-                sp=sp, xbar=xbar, w=w, iteration=iteration, obj_lb=obj_lb, subproblem_xbar_diff=subproblem_xbar_diff
+                sp=sp,
+                xbar=xbar,
+                w=w,
+                iteration=iteration,
+                obj_lb=obj_lb,
+                subproblem_xbar_diff=subproblem_xbar_diff,
             )
             toc(f"Archiving solution - DONE", logger=logger, level=logging.VERBOSE)
 
