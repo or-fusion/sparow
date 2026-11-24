@@ -671,7 +671,8 @@ def mf_random(data, models, model_weight=None, bundle_args=None):
     bundle_scen = {}
     # model[0]
     for b in bundleIDs:  # each bundle contains 1 HF scenario
-        bundle_scen[b] = {bf.scen_key(model0, b): model_weight[model0]}
+        s_ = bf.scen_key(model0, b)
+        bundle_scen[b] = {s_: model_weight[model0] * data[model0][s_[1]]["probability"]}
 
     # model[i]
     for b in bundleIDs:
@@ -689,7 +690,9 @@ def mf_random(data, models, model_weight=None, bundle_args=None):
             k = 0
             while k < min(N, n[model]):  # randomly assign LF scenario to bundle
                 s_ = scenario_keys[index[k]]
-                bundle_scen[b][bf.scen_key(model, s_)] = model_weight[model]
+                bundle_scen[b][bf.scen_key(model, s_)] = (
+                    model_weight[model] * data[model][s_]["probability"]
+                )
                 k += 1
     #
     # Create the final bundle object

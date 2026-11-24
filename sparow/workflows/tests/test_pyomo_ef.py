@@ -66,25 +66,25 @@ def test_initialize_MF_EF(mip_solver):
     results_dict = results.to_dict()
     soln = next(iter(results_dict["solutions"].values()))
     obj_val = soln["objectives"][0]["value"]
-    assert obj_val == pytest.approx(81.3525, 0.01)
+    assert obj_val == pytest.approx(122.58, 0.01)
 
     # results.activate(Finalized Last PH Solution")
     soln = next(iter(results.solutions))
 
-    # Create EF with LF scenarios
-    M = create_and_initialize_EF(app.sp, soln, model_fidelities=["LF"], resolve=True)
+    # Create EF with HF scenarios
+    M = create_and_initialize_EF(app.sp, soln, model_fidelities=["HF"], resolve=True)
     assert pyo.value(M.obj, exception=False) == pytest.approx(80.25, 0.01)
 
     # Create EF with LF scenarios
-    M = create_and_initialize_EF(app.sp, soln, model_fidelities=["HF"], resolve=True)
-    assert pyo.value(M.obj, exception=False) == pytest.approx(82.455, 0.01)
+    M = create_and_initialize_EF(app.sp, soln, model_fidelities=["LF"], resolve=True)
+    assert pyo.value(M.obj, exception=False) == pytest.approx(164.91, 0.01)
 
     # Create EF with LF and HF scenarios
     M = create_and_initialize_EF(
         app.sp, soln, model_fidelities=["LF", "HF"], resolve=True
     )
-    assert pyo.value(M.obj, exception=False) == pytest.approx(81.3525, 0.01)
+    assert pyo.value(M.obj, exception=False) == pytest.approx(122.58, 0.01)
 
     # Check EF with the unspecified scenarios, which pulls-in all model fidelities
     M = create_and_initialize_EF(app.sp, soln, resolve=True)
-    assert pyo.value(M.obj, exception=False) == pytest.approx(81.3525, 0.01)
+    assert pyo.value(M.obj, exception=False) == pytest.approx(122.58, 0.01)

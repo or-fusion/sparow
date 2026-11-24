@@ -28,7 +28,7 @@ When you initialize a model, Sparow automatically creates bundles using a defaul
    from sparow.sp import stochastic_program
 
    # Initialize model with default bundling (single_scenario)
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
    # Initialize with custom bundling scheme
    from sparow.sp.bundling.bundling_functions import kmeans_similar
@@ -329,10 +329,10 @@ Newsvendor Problem
    from sparow.sp.bundling.bundling_functions import kmeans_similar
 
    # Newsvendor with k-means bundling
-   app_data = dict(c=1.0, b=1.5, h=0.1)
+   common_data = dict(c=1.0, b=1.5, h=0.1)
 
    # Demand scenarios
-   model_data = {
+   scenario_data = {
        "scenarios": [
            {"ID": 1, "data": {"d": 15}, "probability": 0.1},
            {"ID": 2, "data": {"d": 60}, "probability": 0.6},
@@ -344,9 +344,9 @@ Newsvendor Problem
 
    # Create stochastic program
    sp = stochastic_program(first_stage_variables=["x"])
-   sp.initialize_application(app_data=app_data)
+   sp.configure(common_data=common_data)
 
-   sp.initialize_model(model_data=model_data, model_builder=builder)
+   sp.add_scenarios(data=scenario_data, scenario_builder=builder)
 
    # Use k-means bundling with about 2 scenarios per bundle
    bundles = kmeans_similar(

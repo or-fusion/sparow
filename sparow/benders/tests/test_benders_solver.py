@@ -70,14 +70,14 @@ class TestBenders_NonPersistent:
             #    loglevel="DEBUG",
         )
         a_val = 1
-        model_data = {
+        scenario_data = {
             "scenarios": [
                 dict(ID=1, data={"LB": None, "UB": None}),
             ],
         }
-        app_data = dict(a=a_val, c=0, L=1, R=1)
+        common_data = dict(a=a_val, c=0, L=1, R=1)
         app = adjustable_absolute_value(
-            local_app_data=app_data, local_model_data=model_data
+            local_common_data=common_data, local_scenario_data=scenario_data
         )
 
         default_lower_eta = -1_000
@@ -97,14 +97,14 @@ class TestBenders_NonPersistent:
         solver.set_options(solver=mip_solver, subproblem_solver=mip_solver)
         a_vals = [1, -1, 3, 4]
         for a_val in a_vals:
-            model_data = {
+            scenario_data = {
                 "scenarios": [
                     dict(ID=1, data={"LB": None, "UB": None}),
                 ],
             }
-            app_data = dict(a=a_val, c=0, L=1, R=1)
+            common_data = dict(a=a_val, c=0, L=1, R=1)
             app = adjustable_absolute_value(
-                local_app_data=app_data, local_model_data=model_data
+                local_common_data=common_data, local_scenario_data=scenario_data
             )
 
             default_lower_eta = -1_000
@@ -439,14 +439,14 @@ class TestBenders_Persistent:
             is_persistent_solver=True,
         )
         a_val = 1
-        model_data = {
+        scenario_data = {
             "scenarios": [
                 dict(ID=1, data={"LB": None, "UB": None}),
             ],
         }
-        app_data = dict(a=a_val, c=0, L=1, R=1)
+        common_data = dict(a=a_val, c=0, L=1, R=1)
         app = adjustable_absolute_value(
-            local_app_data=app_data, local_model_data=model_data
+            local_common_data=common_data, local_scenario_data=scenario_data
         )
 
         default_lower_eta = -1_000
@@ -470,14 +470,14 @@ class TestBenders_Persistent:
         )
         a_vals = [1, -1, 3, 4]
         for a_val in a_vals:
-            model_data = {
+            scenario_data = {
                 "scenarios": [
                     dict(ID=1, data={"LB": None, "UB": None}),
                 ],
             }
-            app_data = dict(a=a_val, c=0, L=1, R=1)
+            common_data = dict(a=a_val, c=0, L=1, R=1)
             app = adjustable_absolute_value(
-                local_app_data=app_data, local_model_data=model_data
+                local_common_data=common_data, local_scenario_data=scenario_data
             )
 
             default_lower_eta = -1_000

@@ -31,8 +31,8 @@ class TestPHNewsvendor:
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.01)
 
-    def test_LF(self, mip_solver):
-        app = LF_newsvendor()
+    def test_HF(self, mip_solver):
+        app = HF_newsvendor()
         solver = ProgressiveHedgingSolver()
         solver.set_options(solver=mip_solver)
         solver.set_options(max_iterations=1000)
@@ -45,8 +45,8 @@ class TestPHNewsvendor:
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.01)
 
-    def test_HF(self, mip_solver):
-        app = HF_newsvendor()
+    def test_LF(self, mip_solver):
+        app = LF_newsvendor()
         solver = ProgressiveHedgingSolver()
         solver.set_options(solver=mip_solver)
         results = solver.solve(app.sp)
@@ -69,3 +69,29 @@ class TestPHNewsvendor:
 
         obj_val = soln["objectives"][0]["value"]
         assert obj_val == pytest.approx(app.objective_value, 0.1)
+
+    def test_MFrandom_with_mf_sp(self, mip_solver):
+        hf_app = HF_newsvendor()
+        app = MFrandom_newsvendor()
+        solver = ProgressiveHedgingSolver()
+        solver.set_options(solver=mip_solver)
+        solver.set_options(max_iterations=1000)
+        results = solver.solve(hf_app.sp, mf_sp=app.sp)
+        results_dict = results.to_dict()
+        soln = next(iter(results_dict["solutions"].values()))
+
+        obj_val = soln["objectives"][0]["value"]
+        assert obj_val == pytest.approx(hf_app.objective_value, 0.1)
+
+    def test_MFrandom_with_mf_sp_with_bundling(self, mip_solver):
+        hf_app = HF_newsvendor()
+        app = MFrandom_newsvendor(with_bundles=True)
+        solver = ProgressiveHedgingSolver()
+        solver.set_options(solver=mip_solver)
+        solver.set_options(max_iterations=1000)
+        results = solver.solve(hf_app.sp, mf_sp=app.sp)
+        results_dict = results.to_dict()
+        soln = next(iter(results_dict["solutions"].values()))
+
+        obj_val = soln["objectives"][0]["value"]
+        assert obj_val == pytest.approx(hf_app.objective_value, 0.1)

@@ -152,7 +152,7 @@ class StochasticProgramModelProtocol(Protocol):
         """
         ...
 
-    def build_model_data(self, scenarios: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def build_scenario_data(self, scenarios: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Build model data from a scenario batch.
         """
@@ -160,7 +160,7 @@ class StochasticProgramModelProtocol(Protocol):
 
     def solve_extensive_form(
         self,
-        model_data: Dict[str, Any],
+        scenario_data: Dict[str, Any],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
         loglevel: str = "INFO",
@@ -179,7 +179,7 @@ class StochasticProgramModelProtocol(Protocol):
     def evaluate_first_stage_solution(
         self,
         xhat: Dict[str, float],
-        model_data: Dict[str, Any],
+        scenario_data: Dict[str, Any],
         solver_name: str,
         solver_options: Optional[Dict[str, Any]] = None,
     ) -> float:

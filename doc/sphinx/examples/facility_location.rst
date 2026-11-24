@@ -227,8 +227,8 @@ Cost Analysis
        variables = solution['variables']
 
        # Extract costs
-       fixed_costs = app.app_data['f']
-       variable_costs = app.app_data['c']
+       fixed_costs = app.common_data['f']
+       variable_costs = app.common_data['c']
 
        # Calculate total costs
        total_fixed_cost = 0
@@ -267,16 +267,16 @@ Sensitivity Analysis
 
    def sensitivity_analysis(app):
        """Perform sensitivity analysis on facility costs."""
-       base_fixed_costs = app.app_data['f']
+       base_fixed_costs = app.common_data['f']
        sensitivities = []
 
        # Vary fixed costs
        for multiplier in [0.8, 0.9, 1.0, 1.1, 1.2]:
-           new_app_data = app.app_data.copy()
-           new_app_data['f'] = [cost * multiplier for cost in base_fixed_costs]
+           new_common_data = app.common_data.copy()
+           new_common_data['f'] = [cost * multiplier for cost in base_fixed_costs]
 
            # Create new application
-           new_app = facilityloc(app_data=new_app_data)
+           new_app = facilityloc(common_data=new_common_data)
 
            # Solve
            solver = ExtensiveFormSolver()
@@ -339,7 +339,7 @@ Uncertainty Quantification
    from sparow.conf_intervals import objective_ci, variable_ci
 
    # Compute confidence intervals for facility decisions
-   for fid in range(len(app.app_data['f'])):
+   for fid in range(len(app.common_data['f'])):
        var_name = f'x[{fid}]'
        try:
            ci = variable_ci(results, variable_name=var_name)

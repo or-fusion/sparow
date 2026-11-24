@@ -1,4 +1,6 @@
-import warnings
+import sparow.logs
+
+logger = sparow.logs.logger
 
 """
 * specify which bundling scheme (function) is used via "bundle_scheme" in sp.py
@@ -97,9 +99,8 @@ def check_data_dict_keys(data, model0, bundle_args, dkey_required=False):
         pkey = PKEY
     else:
         pkey = None
-        warnings.warn(
-            "No scenario probabilities are given; assuming uniform distribution.",
-            UserWarning,
+        logger.warning(
+            "No scenario probabilities are given; assuming uniform distribution."
         )
 
     return dkey, pkey

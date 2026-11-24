@@ -60,7 +60,7 @@ def finalize_ph_results(
     ]
     assert len(xbar) == len(
         sp.shared_variables()
-    ), "Mismatch between solution variables and SP model variables: {len(xbar)} != {len(sp.shared_variables())}"
+    ), f"Mismatch between solution variables and SP model variables: {len(xbar)} != {len(sp.shared_variables())}"
     #
     # We use xbar to identify a point that is feasible for all scenarios.
     #
@@ -237,14 +237,17 @@ class ProgressiveHedgingSolver(object):
                 sparow.logs.use_debugging_formatter()
             logger.setLevel(loglevel)
 
-    def solve(self, sp, **options):
+    def solve(self, sp_finalize, mf_sp=None, **options):
         """
         Solve a stochastic program using the progressive hedging algorithm.
 
         Parameters
         ----------
-        sp : StochasticProgram
+        sp_finalize : StochasticProgram
             The stochastic program to solve.
+        mf_sp : StochasticProgram
+            The multi-fidelity stochastic approximation used to for search.
+            If this is None, then 'sp_finalize' is used for search.
         **options : dict
             Additional options for the solver.
 
@@ -253,6 +256,14 @@ class ProgressiveHedgingSolver(object):
         object
             The solution pool manager containing the results.
         """
+        if sp_finalize is None:
+            if mf_sp is not None:
+                raise ValueError(
+                    "A stochastic program must be specified.  The mf_sp keyword is used to specify the stochastic program used during search, but a stochastic program must be specified to evaluate the final solution."
+                )
+            else:
+                raise ValueError("A stochastic program must be specified.")
+
         start_time = datetime.datetime.now()
         if len(options) > 0:
             self.set_options(**options)
@@ -298,7 +309,12 @@ class ProgressiveHedgingSolver(object):
         # The StochProgram object manages the sub-solver interface.  By default, we assume
         #   the user has initialized the sub-solver within the SP object.
         if self.solver_name:
-            sp.set_solver(self.solver_name)
+            sp_finalize.set_solver(self.solver_name)
+            if mf_sp:
+                mf_sp.set_solver(self.solver_name)
+
+        # Identify the stochastic program used for search
+        sp = mf_sp if mf_sp else sp_finalize
 
         logger.info("ProgressiveHedgingSolver - START")
         iteration_timer = TicTocTimer()
@@ -435,7 +451,7 @@ class ProgressiveHedgingSolver(object):
             #       subproblems could have different values.  We need to assess the difference
             #       between the xbar that generated the current values.
             #
-            g = sum(
+            subproblem_xbar_diff = sum(
                 sp.bundles[b].probability
                 * norm(
                     [sp.get_variable_value(b, x) - xbar[x] for x in sfs_variables],
@@ -444,22 +460,27 @@ class ProgressiveHedgingSolver(object):
                 for b in sp.bundles
             )
             if self.normalize_convergence_norm:
-                g /= len(sfs_variables)
-            logger.info(f"g = {g}")
+                subproblem_xbar_diff /= len(sfs_variables)
+            logger.info(f"subproblem_xbar_diff = {subproblem_xbar_diff}")
 
-            G = norm(
+            iteration_xbar_diff = norm(
                 [xbar[x] - xbar_prev[x] for x in sfs_variables], self.convergence_norm
             )
             if self.normalize_convergence_norm:
-                G /= len(sfs_variables)
-            logger.info(f"G = {G}")
+                iteration_xbar_diff /= len(sfs_variables)
+            logger.info(f"iteration_xbar_diff = {iteration_xbar_diff}")
 
             # Step 9.1
             tic(
                 f"Archiving solution: {iteration}", logger=logger, level=logging.VERBOSE
             )
             latest_soln = self.archive_solution(
-                sp=sp, xbar=xbar, w=w, iteration=iteration, obj_lb=obj_lb, g=g
+                sp=sp,
+                xbar=xbar,
+                w=w,
+                iteration=iteration,
+                obj_lb=obj_lb,
+                subproblem_xbar_diff=subproblem_xbar_diff,
             )
             toc(f"Archiving solution - DONE", logger=logger, level=logging.VERBOSE)
 
@@ -471,14 +492,14 @@ class ProgressiveHedgingSolver(object):
                 time_last_iter=time_last_iter,
                 xbar=xbar,
                 rho=self.rho,
-                g=g,
-                G=G,
+                subproblem_xbar_diff=subproblem_xbar_diff,
+                iteration_xbar_diff=iteration_xbar_diff,
                 w=w,
             )
 
             # Step 10
-            if G + g < self.convergence_tolerance:
-                termination_condition = f"Termination: convergence tolerance ({G} + {g} < {self.convergence_tolerance})"
+            if iteration_xbar_diff + subproblem_xbar_diff < self.convergence_tolerance:
+                termination_condition = f"Termination: convergence tolerance ({iteration_xbar_diff} + {subproblem_xbar_diff} < {self.convergence_tolerance})"
                 logger.info(termination_condition)
                 break
 
@@ -497,6 +518,12 @@ class ProgressiveHedgingSolver(object):
         logger.info("")
         logger.info("-" * 70)
         logger.info("ProgressiveHedgingSolver - FINALIZING")
+
+        if mf_sp is not None:
+            # Initialize the model logic in sp_finalize if it hasn't been used yet
+            for b in sp_finalize.bundles:
+                sp_finalize.create_subproblem(b, cached=self.cached_model_generation)
+
         if self.finalize_all_xbar:
             all_iterations = list(self.solutions)
             self.solutions.add_pool(
@@ -504,14 +531,14 @@ class ProgressiveHedgingSolver(object):
                 policy=solnpool.PoolPolicy.keep_all,
             )
             for soln in all_iterations:
-                finalize_ph_results(soln, sp=sp, solutions=self.solutions)
+                finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
         else:
             soln = self.solutions[latest_soln]
             self.solutions.add_pool(
                 name="Finalized Last PH Solution",
                 policy=solnpool.PoolPolicy.keep_best,
             )
-            finalize_ph_results(soln, sp=sp, solutions=self.solutions)
+            finalize_ph_results(soln, sp=sp_finalize, solutions=self.solutions)
 
         sp_metadata.end_time = str(end_time)
         sp_metadata.time_elapsed = str(end_time - start_time)
@@ -540,12 +567,12 @@ class ProgressiveHedgingSolver(object):
         """
         logger.info("")
         logger.info("-" * 70)
-        logger.info(f"Iteration:        {kwds['iteration']}")
-        logger.info(f"obj_lb:           {kwds['obj_lb']}")
-        logger.info(f"conv_norm:        {kwds.get('g',None)}")
-        logger.info(f"xbar_diff_norm:   {kwds.get('G',None)}")
-        logger.info(f"time:             {kwds['time']}")
-        logger.info(f"time_last_iter:   {kwds['time_last_iter']}")
+        logger.info(f"Iteration:            {kwds['iteration']}")
+        logger.info(f"obj_lb:               {kwds['obj_lb']}")
+        logger.info(f"subproblem_xbar_diff: {kwds.get('subproblem_xbar_diff',None)}")
+        logger.info(f"iteration_xbar_diff:  {kwds.get('iteration_xbar_diff',None)}")
+        logger.info(f"time:                 {kwds['time']}")
+        logger.info(f"time_last_iter:       {kwds['time_last_iter']}")
         if logger.isEnabledFor(logging.VERBOSE):
             tmp = kwds["w"]
             tmp = {

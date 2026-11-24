@@ -5,8 +5,8 @@ from sparow.sp import stochastic_program
 #
 # Data for a simple newsvendor example
 #
-app_data = dict(c=1.0, b=1.5, h=0.1)
-model_data = {
+common_data = dict(c=1.0, b=1.5, h=0.1)
+scenario_data = {
     "scenarios": [
         dict(ID=1, data={"d": 15}),
         dict(ID=2, data={"d": 60}),
@@ -55,8 +55,8 @@ def simple_newsvendor():
     https://www.epoc.org.nz/papers/ShapiroTutorialSP.pdf
     """
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(model_data=model_data, model_builder=builder)
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(data=scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=76.5,
@@ -79,14 +79,14 @@ def single_scenario_newsvendor():
     This is designed to check the probability weighting piece of benders
     """
 
-    local_model_data = {
+    local_scenario_data = {
         "scenarios": [
             dict(ID=1, data={"d": 50}),
         ],
     }
     sp = stochastic_program(first_stage_variables=["x"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(model_data=local_model_data, model_builder=builder)
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(data=local_scenario_data, scenario_builder=builder)
     return Munch(
         sp=sp,
         objective_value=50.0,

@@ -276,19 +276,19 @@ class HFScenario_dict(object):
 
 
 #
-# construct model_data:
+# construct scenario_data:
 #
 HFScen_object = HFScenario_dict(HF_scendata)
 HF_data = HFScen_object.scenario_generator(GlobalData.num_plots, GlobalData.num_scens)
 
-app_data = {"num_plots": GlobalData.num_plots}
-model_data = {"LF": LF_scendata, "HF": HF_data}
+common_data = {"num_plots": GlobalData.num_plots}
+scenario_data = {"LF": LF_scendata, "HF": HF_data}
 
 
 #
 # Construct LF farmers problem model:
 #
-def LF_model_builder(data, args):
+def LF_scenario_builder(data, args):
     num_plots = GlobalData.num_plots
     model = pyo.ConcreteModel(data["ID"])
 
@@ -453,7 +453,7 @@ def LF_model_builder(data, args):
 #
 # Construct HF farmers problem model:
 #
-def model_builder(data, args):
+def scenario_builder(data, args):
     num_plots = GlobalData.num_plots
     model = pyo.ConcreteModel(data["ID"])
 
@@ -615,33 +615,34 @@ def model_builder(data, args):
 
 def HF_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=model_builder
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=scenario_builder
     )
     return Munch(sp=sp)
 
 
 def LF_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="LF", model_data=model_data["LF"], model_builder=LF_model_builder
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(
+        name="LF",
+        data=scenario_data["LF"],
+        scenario_builder=LF_scenario_builder,
     )
     return Munch(sp=sp)
 
 
 def MFrandom_farmers():
     sp = stochastic_program(first_stage_variables=["DevotedAcreage[*,*]"])
-    sp.initialize_application(app_data=app_data)
-    sp.initialize_model(
-        name="HF", model_data=model_data["HF"], model_builder=model_builder
+    sp.configure(common_data=common_data)
+    sp.add_scenarios(
+        name="HF", data=scenario_data["HF"], scenario_builder=scenario_builder
     )
-    sp.initialize_model(
+    sp.add_scenarios(
         name="LF",
-        model_data=model_data["LF"],
-        model_builder=LF_model_builder,
-        default=False,
+        data=scenario_data["LF"],
+        scenario_builder=LF_scenario_builder,
     )
     sp.initialize_bundles(
         scheme="mf_random",
