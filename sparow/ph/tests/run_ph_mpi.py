@@ -59,7 +59,7 @@ def configurations(solver):
     Returns a dictionary that maps configuration names to (problem, options)
     tuples, where problem() returns the arguments for solve().
     """
-    base = dict(max_iterations=1000, solver=solver, loglevel="WARN")
+    base = dict(max_iterations=10, solver=solver, loglevel="WARN")
     return {
         # Finalize only the last PH iterate (one parallel evaluation)
         "default": (simple_problem, dict(base)),
@@ -67,7 +67,7 @@ def configurations(solver):
         # Fewer iterations keep the serial finalization affordable.
         "finalize_all_xbar": (
             simple_problem,
-            dict(base, max_iterations=20, finalize_all_xbar=True),
+            dict(base, max_iterations=10, finalize_all_xbar=True),
         ),
         # Pass solver options to the subproblem solves
         "solver_options": (

@@ -7,8 +7,10 @@ master-worker scheme:
 * Rank 0 is the master.  It runs the PH algorithm (computing xbar, w, rho and
   the convergence metrics, archiving solutions and finalizing the results),
   and maintains a queue of tasks.
+
 * Ranks 1, ..., size-1 are workers.  A worker receives a task, executes it,
   and sends back the result.
+
 * The master initially sends one task to every worker.  Whenever a result
   arrives, the master sends that worker the next pending task, until the
   queue is empty and all results have been received.
@@ -16,6 +18,7 @@ master-worker scheme:
 There are two kinds of tasks:
 
 * During search, a task solves the PH subproblem for one bundle.
+
 * During finalization, a task evaluates a candidate first-stage point on one
   bundle of the finalization model.
 
@@ -36,16 +39,10 @@ the same stochastic program and calls ``solve()``.  For example:
     mpiexec -n 4 python my_script.py
 
 ``solve()`` returns the solution pool on rank 0 and ``None`` on all other ranks.
-
-Logging: when more than one process is used, log messages are prefixed with
-the rank (e.g. "[rank 2] INFO - ...").  The ``loglevel`` option applies to the
-master, and the ``worker_loglevel`` option (default "WARNING") applies to the
-workers, so worker output is limited to warnings and errors unless requested.
 """
 
 import collections
 import traceback
-
 import munch
 
 import sparow.logs
