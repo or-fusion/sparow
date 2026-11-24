@@ -684,52 +684,59 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
         pyomo.ConcreteModel
             The extensive form model for the bundle.
         """
-        if cached and b in self._model_cache:
+        if not cached:
+            return self.create_bundle_EF_repn(
+                b=b,
+                w=w,
+                x_bar=x_bar,
+                rho=rho,
+                cached=False,
+                compact_repn=compact_repn,
+            )
+
+        if b in self._model_cache:
             M = self._model_cache[b]
+            #
+            # Constructing any other model for this bundle (e.g. an uncached
+            # model in evaluate()) re-binds int_to_FirstStageVar[b] to the
+            # variables of that model.  Re-bind it to the cached model, so
+            # get_variable_value() and fix_variable() act on the model that
+            # is returned.
+            #
+            self.int_to_FirstStageVar[b] = dict(M._sparow_int_to_FirstStageVar)
+        else:
+            # Note: this also adds the model to the cache
+            M = self.create_bundle_EF_repn(
+                b=b,
+                w=w,
+                x_bar=x_bar,
+                rho=rho,
+                cached=True,
+                compact_repn=compact_repn,
+            )
 
-            if rho is None:
-                for i, x in self.int_to_FirstStageVar[b].items():
-                    M.sparow_params.rho[i].set_value(0.0)
+        #
+        # A cached model is constructed with mutable parameters that are
+        # initialized to zero, so set their values here.  This is needed both
+        # when the model is retrieved from the cache *and* when it was just
+        # constructed: the first call for a bundle may already include values
+        # for rho, w and x_bar (e.g. when a parallel solver first assigns a
+        # bundle to a process in a later PH iteration).
+        #
+        params = M.sparow_params
+        for name, values in (("rho", rho), ("w", w), ("x_bar", x_bar)):
+            param = getattr(params, name)
+            if values is None:
+                for i in param:
+                    param[i].set_value(0.0)
             else:
-                for i, x in self.int_to_FirstStageVar[b].items():
-                    M.sparow_params.rho[i].set_value(rho[i])
+                assert name == "rho" or len(values) == len(
+                    param
+                ), f"Inconsistent data sizes between param.{name} ({len(param)}) and {name} ({len(values)})"
+                for i in param:
+                    param[i].set_value(values[i])
 
-            if w is None:
-                for i in M.sparow_params.w:
-                    M.sparow_params.w[i].set_value(0.0)
-            else:
-                assert len(w) == len(
-                    M.sparow_params.w
-                ), f"Inconsistent data sizes between param.w ({len(M.sparow_params.w)}) and w ({len(w)})"
-                for i in M.sparow_params.w:
-                    M.sparow_params.w[i].set_value(w[i])
-
-            if x_bar is None:
-                for i in M.sparow_params.x_bar:
-                    M.sparow_params.x_bar[i].set_value(0.0)
-            else:
-                assert len(x_bar) == len(
-                    M.sparow_params.x_bar
-                ), f"Inconsistent data sizes between param.x_bar ({len(M.sparow_params.x_bar)}) and x_bar ({len(x_bar)})"
-                for i in M.sparow_params.x_bar:
-                    M.sparow_params.x_bar[i].set_value(x_bar[i])
-
-            return M
-
-        EF_model = self.create_bundle_EF_repn(
-            b=b,
-            w=w,
-            x_bar=x_bar,
-            rho=rho,
-            cached=cached,
-            compact_repn=compact_repn,
-        )
-
-        # Cache the model if the 'cached' flag has been specified
-        if cached:
-            self._model_cache[b] = EF_model
-
-        return EF_model
+        return M
 
     def create_bundle_EF_repn(
         self,
@@ -779,8 +786,11 @@ class StochasticProgram_Pyomo_NamedBuilder(StochasticProgram_Pyomo_Base):
                 b=b, w=w, x_bar=x_bar, rho=rho, cached=cached
             )
 
-        # Cache the model if the 'cached' flag has been specified
+        # Cache the model if the 'cached' flag has been specified.  The
+        # first-stage variable map of the model is saved with it, so it can be
+        # restored when the cached model is reused (see create_bundle_EF).
         if cached:
+            EF_model._sparow_int_to_FirstStageVar = dict(self.int_to_FirstStageVar[b])
             self._model_cache[b] = EF_model
 
         return EF_model

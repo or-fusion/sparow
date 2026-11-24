@@ -298,3 +298,61 @@ def test_MFrandom(mip_solver):
     # assert pyo.value(M2.s["HF", "2"].y) == pytest.approx(70.0)
     # assert pyo.value(M2.s["LF", "1"].y) == pytest.approx(42.5)
     # assert pyo.value(M2.s["LF", "4"].y) == pytest.approx(97.0)
+
+
+def test_cached_subproblem_first_call_uses_ph_values():
+    #
+    # A cached subproblem whose *first* construction already includes PH
+    # values (rho, w, x_bar) must use them.  This happens with parallel PH
+    # solvers, where a bundle can first be assigned to a process in a later
+    # iteration.  The cached model must match the uncached model.
+    #
+    w = {0: 2.0}
+    x_bar = {0: 3.0}
+    rho = {0: 4.0}
+
+    def objective_at_ones(M):
+        for var in M.component_data_objects(pyo.Var, descend_into=True):
+            var.set_value(1.0)
+        return pyo.value(M.obj)
+
+    sp = simple_newsvendor().sp
+    M_cached = sp.create_subproblem("1", w=w, x_bar=x_bar, rho=rho, cached=True)
+    params = M_cached.sparow_params
+    assert pyo.value(params.w[0]) == 2.0
+    assert pyo.value(params.x_bar[0]) == 3.0
+    assert pyo.value(params.rho[0]) == 4.0
+    cached_obj = objective_at_ones(M_cached)
+
+    sp = simple_newsvendor().sp
+    M_uncached = sp.create_subproblem("1", w=w, x_bar=x_bar, rho=rho, cached=False)
+    assert cached_obj == pytest.approx(objective_at_ones(M_uncached))
+
+    # Without PH values, the cached model is reset to the original objective
+    sp = simple_newsvendor().sp
+    M_cached = sp.create_subproblem("1", w=w, x_bar=x_bar, rho=rho, cached=True)
+    M_cached = sp.create_subproblem("1", cached=True)
+    sp = simple_newsvendor().sp
+    M_plain = sp.create_subproblem("1", cached=False)
+    assert objective_at_ones(M_cached) == pytest.approx(objective_at_ones(M_plain))
+
+
+def test_cached_subproblem_rebinds_first_stage_variables():
+    #
+    # Constructing an uncached model for a bundle (as evaluate() does)
+    # re-binds the first-stage variable map to that model.  Retrieving the
+    # cached model must re-bind it to the cached model, so that
+    # get_variable_value() and fix_variable() act on the returned model.
+    #
+    sp = simple_newsvendor().sp
+    M_cached = sp.create_subproblem("1", cached=True)
+    sp.int_to_FirstStageVar["1"][0].set_value(5.0)
+
+    sp.create_subproblem("1", cached=False)
+    sp.fix_variable("1", 0, 7.0)
+    assert sp.get_variable_value("1", 0) == 7.0
+
+    M = sp.create_subproblem("1", cached=True)
+    assert M is M_cached
+    assert sp.get_variable_value("1", 0) == 5.0
+    assert not sp.int_to_FirstStageVar["1"][0].fixed
