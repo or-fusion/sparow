@@ -256,6 +256,12 @@ class ProgressiveHedgingSolver(object):
         object
             The solution pool manager containing the results.
         """
+        if sp_finalize is None:
+            if mf_sp is not None:
+                raise ValueError("A stochastic program must be specified.  The mf_sp keyword is used to specify the stochastic program used during search, but a stochastic program must be specified to evaluate the final solution.")
+            else:
+                raise ValueError("A stochastic program must be specified.")
+
         start_time = datetime.datetime.now()
         if len(options) > 0:
             self.set_options(**options)
