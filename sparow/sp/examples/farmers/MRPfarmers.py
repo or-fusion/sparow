@@ -358,22 +358,17 @@ def get_sp_model_for_uq(
     local_common_data = dict(common_data)
     local_common_data["use_integer"] = use_integer
 
-    first_stage_vars = ["DevotedAcreage[*]"]
-    first_stage_order = [
-        "DevotedAcreage[WHEAT]",
-        "DevotedAcreage[CORN]",
-        "DevotedAcreage[SUGAR_BEETS]",
-    ]
+    # The stochastic program defines the model name, builder, application
+    # data and first-stage variables.  Scenarios are supplied by the sampler.
+    sp = stochastic_program(first_stage_variables=["DevotedAcreage[*]"])
+    sp.configure(common_data=local_common_data)
+    sp.add_scenarios(name=model_name, scenario_builder=scenario_builder)
 
     model = SPModelWrapperforUQ(
-        name=model_name,
-        fidelity="high",  # single-fidelity case, so treat this as the primary model
+        sp=sp,
         scenario_population=scenario_population,
         scenario_sampler=scenario_sampler,
-        scenario_builder=scenario_builder,
-        common_data=local_common_data,
-        first_stage_variables=first_stage_vars,
-        first_stage_variable_order=first_stage_order,
+        fidelity="high",  # single-fidelity case, so treat this as the primary model
     )
 
     # Runtime-check the returned object against the protocol

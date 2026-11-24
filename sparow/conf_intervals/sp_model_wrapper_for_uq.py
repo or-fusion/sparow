@@ -39,16 +39,32 @@ class SPModelWrapperforUQ:
 
     def __init__(
         self,
-        name: str,
-        fidelity: str,
+        sp,
         scenario_population: ScenarioPopulationProtocol,
         scenario_sampler: ScenarioSamplerProtocol,
-        scenario_builder,
-        common_data: Optional[Dict[str, Any]] = None,
-        first_stage_variables: Optional[List[str]] = None,
-        first_stage_variable_order: Optional[List[str]] = None,
+        fidelity: str = "high",
+        name: Optional[str] = None,
     ):
-
+        """
+        Parameters
+        ----------
+        sp : StochasticProgram
+            A SPAROW stochastic program, e.g. created with
+            ``sparow.sp.stochastic_program()``.  It is used as a template:
+            the model name, model builder, application data, model-level
+            data and first-stage variables are extracted from it.  Its
+            scenarios (if any) are not used; scenarios are drawn from the
+            scenario sampler.
+        scenario_population : ScenarioPopulationProtocol
+            The finite scenario population associated with this model.
+        scenario_sampler : ScenarioSamplerProtocol
+            The sampler used to draw scenario batches for this model.
+        fidelity : str, optional
+            The fidelity label, e.g. 'high', 'low' (default is 'high').
+        name : str, optional
+            The name of the model in ``sp`` to wrap.  Defaults to the
+            default model of ``sp``.
+        """
         if not isinstance(scenario_population, ScenarioPopulationProtocol):
             raise TypeError(
                 "scenario_population must satisfy ScenarioPopulationProtocol."
@@ -56,23 +72,59 @@ class SPModelWrapperforUQ:
         if not isinstance(scenario_sampler, ScenarioSamplerProtocol):
             raise TypeError("scenario_sampler must satisfy ScenarioSamplerProtocol.")
 
+        scenario_builders = getattr(sp, "scenario_builder", None)
+        if not isinstance(scenario_builders, dict) or not hasattr(
+            sp, "first_stage_variables"
+        ):
+            raise TypeError(
+                "sp must be a SPAROW stochastic program created with "
+                f"sparow.sp.stochastic_program().  {type(sp)=}"
+            )
+
+        if name is None:
+            if len(scenario_builders) != 1:
+                raise ValueError(
+                    "Cannot infer model name because there are {len(scenario_builders)} scenario builders in sp."
+                )
+            name = list(scenario_builders.keys())[0]
+        elif name not in scenario_builders:
+            raise ValueError(
+                f"The stochastic program does not have a model builder for "
+                f"model '{name}'.  Call sp.add_scenarios(name=..., "
+                f"scenario_builder=...) before creating SPModelWrapperforUQ."
+            )
+
         self._name = name
         self._fidelity = fidelity
         self._scenario_population = scenario_population
         self._scenario_sampler = scenario_sampler
-        self._scenario_builder = scenario_builder
-        self._common_data = {} if common_data is None else dict(common_data)
-        self._first_stage_variables = (
-            [] if first_stage_variables is None else list(first_stage_variables)
-        )
-        self._first_stage_variable_order = (
-            []
-            if first_stage_variable_order is None
-            else list(first_stage_variable_order)
-        )
+        self._scenario_builder = scenario_builders[name]
+        self._common_data = dict(sp.common_data)
+        self._model_level_data = dict(sp.model_data.get(name, {}))
+        self._first_stage_variables = list(sp.first_stage_variables or [])
 
         # Validate the stored scenario population once at construction time.
         self._scenario_population.validate()
+
+        self._first_stage_variable_order = None
+
+    def X_compute_first_stage_variable_order(self) -> List[str]:
+        """
+        Build a single-scenario stochastic program from one scenario in the
+        population and return the expanded first-stage variable names, in
+        the order expected by sp.evaluate(x=...).
+        """
+        scenarios = self._scenario_population.scenarios()
+        if len(scenarios) == 0:
+            raise ValueError("Scenario population must be nonempty.")
+        sid, scen = next(iter(scenarios.items()))
+
+        sp = self._build_stochastic_program(self.build_model_data({sid: scen}))
+        sp.create_subproblem(next(iter(sp.bundles)))
+        return [
+            sp.int_to_FirstStageVarName[i]
+            for i in range(len(sp.int_to_FirstStageVarName))
+        ]
 
     # ------------------------------------------------------------------
     # Basic metadata
@@ -124,7 +176,9 @@ class SPModelWrapperforUQ:
     def first_stage_variable_order(self) -> List[str]:
         """
         Return the ordered first-stage variable names used to encode
-        the first-stage candidate solution, xhat.
+        the first-stage candidate solution, xhat.  This ordering is
+        derived from the stochastic program and matches the ordering
+        expected by sp.evaluate(x=...).
         """
         return self._first_stage_variable_order
 
@@ -197,6 +251,8 @@ class SPModelWrapperforUQ:
 
         Sampled scenarios may contain metadata (e.g. 'Original_ID' and
         'Population_Index'), which is excluded from the SPAROW model data.
+        Model-level data from the stochastic program used to construct
+        this wrapper is included under the 'data' key.
         """
         scenarios = [
             {k: v for k, v in scen.items() if k in ("ID", "data", "probability")}
@@ -208,7 +264,7 @@ class SPModelWrapperforUQ:
     # Solver / evaluation helpers
     # ------------------------------------------------------------------
 
-    def build_stochastic_program(self, scenario_data: Dict[str, Any]):
+    def _build_stochastic_program(self, scenario_data: Dict[str, Any]):
         """
         Build and return a SPAROW stochastic_program object for this model.
         """
@@ -245,8 +301,12 @@ class SPModelWrapperforUQ:
 
         solver.set_options(**solver_kwargs)
 
-        sp = self.build_stochastic_program(scenario_data)
+        sp = self._build_stochastic_program(scenario_data)
         results = solver.solve(sp)
+
+        self._first_stage_variable_order = list(
+            sorted(sp.get_variable_name(i) for i, _ in enumerate(sp.get_variables()))
+        )
 
         return results.to_dict()
 
@@ -276,7 +336,7 @@ class SPModelWrapperforUQ:
                 "Could not find candidate first-stage variables in solved_object['solutions'][0]['variables']."
             ) from exc
 
-        order = self._first_stage_variable_order
+        order = self.first_stage_variable_order()
         xhat = {}
 
         for var in variables:
@@ -299,14 +359,14 @@ class SPModelWrapperforUQ:
         Convert an xhat dictionary into the ordered vector expected by sp.evaluate(...).
         """
         missing = [
-            name for name in self._first_stage_variable_order if name not in xhat
+            name for name in self.first_stage_variable_order() if name not in xhat
         ]
         if missing:
             raise RuntimeError(
                 f"xhat is missing required first-stage variable(s): {missing}"
             )
 
-        return [xhat[name] for name in self._first_stage_variable_order]
+        return [xhat[name] for name in self.first_stage_variable_order()]
 
     def evaluate_first_stage_solution(
         self,
@@ -323,7 +383,7 @@ class SPModelWrapperforUQ:
         float
             Objective value of the fixed first-stage candidate solution.
         """
-        sp = self.build_stochastic_program(scenario_data)
+        sp = self._build_stochastic_program(scenario_data)
         sp.set_solver(solver_name)
 
         x_vector = self.first_stage_solution_dict_to_vector(xhat)
