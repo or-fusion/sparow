@@ -119,6 +119,7 @@ def LF_newsvendor():
     https://www.epoc.org.nz/papers/ShapiroTutorialSP.pdf
 
     This model includes one additional constraint, using data values 'B' and 'C'.
+    This constraint can change the value of the optimal solution.
     """
     sp = stochastic_program(first_stage_variables=["x"])
     sp.configure(common_data=common_data)
